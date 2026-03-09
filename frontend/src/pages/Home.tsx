@@ -1,9 +1,122 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
+
+interface HomeStats {
+  sleep: {
+    totalNights: number;
+    averageSleepHours: number;
+  };
+  workouts: {
+    totalWorkouts: number;
+    totalWorkoutMinutes: number;
+  };
+  nutrition: {
+    totalMeals: number;
+    totalCalories: number;
+  };
+  ranking: {
+    sleepScore: number;
+    workoutScore: number;
+    nutritionScore: number;
+    overallScore: number;
+    rank: string;
+  };
+}
 
 const Home: React.FC = () => {
   const { user } = useAuth();
+  const [stats, setStats] = useState<HomeStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+
+      // Buscar dados da semana atual
+      const [sleepRes, workoutRes, nutritionRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/sleep/reports?period=week`, { headers }).catch(() => ({ data: { totalNights: 0, averageSleepHours: 0 } })),
+        axios.get(`${API_BASE_URL}/api/workouts/reports?period=week`, { headers }).catch(() => ({ data: { totalWorkouts: 0, totalWorkoutMinutes: 0 } })),
+        axios.get(`${API_BASE_URL}/api/nutrition/reports?period=week`, { headers }).catch(() => ({ data: { totalMeals: 0, totalCalories: 0 } })),
+      ]);
+
+      // Calcular ranking
+      const sleepScore = calculateSleepScore(sleepRes.data);
+      const workoutScore = calculateWorkoutScore(workoutRes.data);
+      const nutritionScore = calculateNutritionScore(nutritionRes.data);
+      const overallScore = Math.round((sleepScore + workoutScore + nutritionScore) / 3);
+
+      setStats({
+        sleep: sleepRes.data,
+        workouts: workoutRes.data,
+        nutrition: nutritionRes.data,
+        ranking: {
+          sleepScore,
+          workoutScore,
+          nutritionScore,
+          overallScore,
+          rank: getRank(overallScore)
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateSleepScore = (sleepData: any): number => {
+    if (!sleepData || sleepData.totalNights === 0) return 0;
+    const avgHours = sleepData.averageSleepHours || 0;
+    if (avgHours >= 7 && avgHours <= 9) return 100;
+    if (avgHours >= 6 && avgHours < 7) return 80;
+    if (avgHours >= 9 && avgHours <= 10) return 90;
+    if (avgHours >= 5 && avgHours < 6) return 60;
+    if (avgHours >= 10 && avgHours <= 11) return 70;
+    return 40;
+  };
+
+  const calculateWorkoutScore = (workoutData: any): number => {
+    if (!workoutData || workoutData.totalWorkouts === 0) return 0;
+    const totalWorkouts = workoutData.totalWorkouts || 0;
+    const totalMinutes = workoutData.totalWorkoutMinutes || 0;
+    let score = 0;
+    if (totalWorkouts >= 5) score += 50;
+    else if (totalWorkouts >= 3) score += 30;
+    else if (totalWorkouts >= 1) score += 10;
+    if (totalMinutes >= 300) score += 50;
+    else if (totalMinutes >= 150) score += 30;
+    else if (totalMinutes >= 60) score += 10;
+    return Math.min(score, 100);
+  };
+
+  const calculateNutritionScore = (nutritionData: any): number => {
+    if (!nutritionData || nutritionData.totalMeals === 0) return 0;
+    const totalMeals = nutritionData.totalMeals || 0;
+    let score = 0;
+    if (totalMeals >= 21) score += 60;
+    else if (totalMeals >= 14) score += 40;
+    else if (totalMeals >= 7) score += 20;
+    return Math.max(score, 0);
+  };
+
+  const getRank = (score: number): string => {
+    if (score >= 90) return '🏆 Mestre';
+    if (score >= 80) return '🥇 Especialista';
+    if (score >= 70) return '🥈 Avançado';
+    if (score >= 60) return '🥉 Intermediário';
+    if (score >= 40) return '📈 Iniciante';
+    return '🌱 Aprendiz';
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   const menus = [
     { title: 'Sono & Repouso', description: 'Otimize sua recuperação diária', icon: 'bi-moon-stars', color: 'primary', link: '/sleep' },
@@ -23,6 +136,85 @@ const Home: React.FC = () => {
                 <h1 className="fw-black text-dark mb-0">Olá, {(user?.name || 'Usuário').split(' ')[0]}! 👋</h1>
                 <p className="text-secondary mt-1 lead fs-6">Sua jornada de alta performance continua aqui.</p>
              </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicadores e Ranking */}
+      <div className="row mb-5">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body p-4">
+              <div className="row align-items-center">
+                {/* Ranking */}
+                <div className="col-lg-4 mb-3 mb-lg-0">
+                  <div className="text-center">
+                    <h4 className="h3 mb-2">{stats?.ranking.rank || 'Carregando...'}</h4>
+                    <div className="d-flex justify-content-center align-items-center mb-3">
+                      <div className="progress-circle me-3" style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        background: `conic-gradient(#6f42c1 0% ${stats?.ranking.overallScore || 0}%, #e9ecef ${stats?.ranking.overallScore || 0}% 100%)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={{
+                          width: '45px',
+                          height: '45px',
+                          borderRadius: '50%',
+                          background: 'white'
+                        }}></div>
+                      </div>
+                      <div>
+                        <div className="h5 mb-0 text-primary">{stats?.ranking.overallScore || 0}%</div>
+                        <small className="text-muted">Score Geral</small>
+                      </div>
+                    </div>
+                    <Link to="/dashboard" className="btn btn-outline-primary btn-sm">
+                      Ver Dashboard Completo
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Indicadores */}
+                <div className="col-lg-8">
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <div className="card bg-primary-subtle border-0 h-100">
+                        <div className="card-body text-center p-3">
+                          <i className="bi bi-moon-stars text-primary fs-2 mb-2"></i>
+                          <h6 className="card-title mb-1">Sono</h6>
+                          <div className="h5 mb-1">{stats?.sleep.averageSleepHours?.toFixed(1) || '0.0'}h</div>
+                          <small className="text-muted">{stats?.sleep.totalNights || 0} noites</small>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="card bg-danger-subtle border-0 h-100">
+                        <div className="card-body text-center p-3">
+                          <i className="bi bi-fire text-danger fs-2 mb-2"></i>
+                          <h6 className="card-title mb-1">Treinos</h6>
+                          <div className="h5 mb-1">{stats?.workouts.totalWorkouts || 0}</div>
+                          <small className="text-muted">{stats?.workouts.totalWorkoutMinutes || 0} min</small>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="card bg-success-subtle border-0 h-100">
+                        <div className="card-body text-center p-3">
+                          <i className="bi bi-apple text-success fs-2 mb-2"></i>
+                          <h6 className="card-title mb-1">Refeições</h6>
+                          <div className="h5 mb-1">{stats?.nutrition.totalMeals || 0}</div>
+                          <small className="text-muted">{stats?.nutrition.totalCalories || 0} cal</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

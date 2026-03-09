@@ -33,7 +33,8 @@ const Header: React.FC = () => {
                   <span className="fw-bold text-primary">{(user.name || 'U').charAt(0).toUpperCase()}</span>
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2 rounded-3">
-                  <li><Link className="dropdown-item rounded-2" to="/"><i className="bi bi-grid me-2"></i>Dashboard</Link></li>
+                  <li><Link className="dropdown-item rounded-2" to="/"><i className="bi bi-house me-2"></i>Home</Link></li>
+                  <li><Link className="dropdown-item rounded-2" to="/dashboard"><i className="bi bi-grid me-2"></i>Dashboard</Link></li>
                   <li><hr className="dropdown-divider" /></li>
                   <li><button onClick={handleLogout} className="dropdown-item rounded-2 text-danger"><i className="bi bi-box-arrow-right me-2"></i>Sair</button></li>
                 </ul>

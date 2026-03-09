@@ -31,6 +31,7 @@ const Nutrition: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -125,6 +126,82 @@ const Nutrition: React.FC = () => {
     if (meal.consumedWater) badges.push(<span key="water" className="badge bg-success me-2 mb-1">💧 Água</span>);
     return badges;
   };
+
+  const calculateMealQualityScore = (meal: Meal): number => {
+    let score = 10;
+    if (meal.consumedAlcohol) score -= 8;
+    else if (meal.consumedSoda) score -= 5;
+    else if (meal.consumedIndustrialJuice) score -= 2;
+    if (meal.consumedWater) score += 3;
+    if (meal.consumedNaturalJuice) score += 2;
+    return Math.max(0, score);
+  };
+
+  const getTimeOfDay = (timeStr?: string | null): string => {
+    if (!timeStr) return 'Desconhecido';
+    const hour = parseInt(timeStr.split(':')[0]);
+    if (hour >= 6 && hour < 12) return 'Manhã';
+    if (hour >= 12 && hour < 18) return 'Tarde';
+    if (hour >= 18 && hour < 24) return 'Noite';
+    return 'Madrugada';
+  };
+
+  const getReportData = () => {
+    if (meals.length === 0) return null;
+
+    // Agrupar refeições por data
+    const mealsByDate: { [key: string]: Meal[] } = {};
+    meals.forEach(meal => {
+      if (!mealsByDate[meal.date]) mealsByDate[meal.date] = [];
+      mealsByDate[meal.date].push(meal);
+    });
+
+    // Calcular estatísticas por dia
+    const dayStats = Object.entries(mealsByDate).map(([date, dayMeals]) => {
+      const totalCals = dayMeals.reduce((sum, m) => sum + m.calories, 0);
+      const avgQuality = dayMeals.reduce((sum, m) => sum + calculateMealQualityScore(m), 0) / dayMeals.length;
+      return { date, meals: dayMeals, totalCals, avgQuality, count: dayMeals.length };
+    });
+
+    // Melhor e pior dia
+    const bestDay = dayStats.reduce((best, current) => 
+      (current.avgQuality > best.avgQuality) ? current : best
+    );
+    const worstDay = dayStats.reduce((worst, current) => 
+      (current.avgQuality < worst.avgQuality) ? current : worst
+    );
+
+    // Distribuição por período do dia
+    const periodDistribution: { [key: string]: number } = {
+      'Manhã': 0,
+      'Tarde': 0,
+      'Noite': 0,
+      'Madrugada': 0,
+      'Desconhecido': 0
+    };
+    meals.forEach(meal => {
+      const period = getTimeOfDay(meal.time);
+      periodDistribution[period]++;
+    });
+
+    // Total de calorias
+    const totalCalories = meals.reduce((sum, m) => sum + m.calories, 0);
+
+    // Média diária de refeições
+    const avgMealsPerDay = (meals.length / dayStats.length).toFixed(1);
+
+    return {
+      bestDay,
+      worstDay,
+      totalCalories,
+      periodDistribution,
+      avgMealsPerDay,
+      totalDays: dayStats.length,
+      dayStats
+    };
+  };
+
+  const reportData = getReportData();
 
   const totalCalories = meals.reduce((acc, m) => acc + m.calories, 0);
 
@@ -279,10 +356,33 @@ const Nutrition: React.FC = () => {
         </div>
 
         <div className="col-lg-8">
-          <div className="d-flex align-items-center justify-content-between mb-4">
-             <h2 className="h5 fw-bold text-dark mb-0">Diário Alimentar</h2>
-             <span className="badge bg-white text-dark shadow-sm px-3 py-2 rounded-3">{meals.length} itens</span>
-          </div>
+          {/* Abas de Navegação */}
+          <ul className="nav nav-tabs mb-4 border-0 gap-2">
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'diary' ? 'bg-success text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('diary')}
+              >
+                <i className="bi bi-calendar-check me-2"></i>Diário Alimentar
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'reports' ? 'bg-success text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('reports')}
+              >
+                <i className="bi bi-graph-up me-2"></i>Relatórios
+              </button>
+            </li>
+          </ul>
+
+          {/* Aba Diário Alimentar */}
+          {activeTab === 'diary' && (
+          <div>
+            <div className="d-flex align-items-center justify-content-between mb-4">
+               <h2 className="h5 fw-bold text-dark mb-0">Diário Alimentar</h2>
+               <span className="badge bg-white text-dark shadow-sm px-3 py-2 rounded-3">{meals.length} itens</span>
+            </div>
 
           <div className="list-group list-group-flush bg-transparent">
             {meals.length > 0 ? (
@@ -324,9 +424,143 @@ const Nutrition: React.FC = () => {
               </div>
             )}
           </div>
+          </div>
+          )}
+
+          {/* Aba Relatórios */}
+          {activeTab === 'reports' && reportData && (
+          <div>
+            <h2 className="h5 fw-bold text-dark mb-4">
+              <i className="bi bi-graph-up text-info me-2"></i>Relatório Detalhado
+            </h2>
+
+            <div className="row g-3 mb-4">
+              {/* Total de Calorias */}
+              <div className="col-md-6">
+                <div className="card p-4 border-0 shadow-sm h-100 bg-light-success">
+                  <p className="text-muted small mb-2"><i className="bi bi-fire me-2"></i>Total de Calorias</p>
+                  <h3 className="fw-black text-dark mb-0">{reportData.totalCalories} kcal</h3>
+                  <small className="text-muted mt-2">Consumidas em {reportData.totalDays} dia(s)</small>
+                </div>
+              </div>
+
+              {/* Média por Dia */}
+              <div className="col-md-6">
+                <div className="card p-4 border-0 shadow-sm h-100 bg-light-info">
+                  <p className="text-muted small mb-2"><i className="bi bi-bar-chart me-2"></i>Média por Dia</p>
+                  <h3 className="fw-black text-dark mb-0">{reportData.avgMealsPerDay}</h3>
+                  <small className="text-muted mt-2">Refeições registradas</small>
+                </div>
+              </div>
+            </div>
+
+            {/* Melhor e Pior Dia */}
+            <div className="row g-3 mb-4">
+              {/* Melhor Dia */}
+              <div className="col-md-6">
+                <div className="card p-4 border-0 shadow-sm h-100 border-start border-success border-4">
+                  <p className="text-muted small mb-2 fw-bold">🏆 Melhor Dia</p>
+                  <p className="text-dark fw-bold mb-1">{new Date(reportData.bestDay.date).toLocaleDateString('pt-BR')}</p>
+                  <small className="text-muted d-block mb-2">
+                    <i className="bi bi-egg-fried me-1"></i>{reportData.bestDay.count} refeição{reportData.bestDay.count !== 1 ? 's' : ''}
+                  </small>
+                  <small className="text-muted d-block mb-2">
+                    <i className="bi bi-fire me-1"></i>{reportData.bestDay.totalCals} kcal
+                  </small>
+                  <div className="pt-2 border-top">
+                    <small className="text-primary fw-bold">Qualidade: {reportData.bestDay.avgQuality.toFixed(1)}/10</small>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pior Dia */}
+              <div className="col-md-6">
+                <div className="card p-4 border-0 shadow-sm h-100 border-start border-danger border-4">
+                  <p className="text-muted small mb-2 fw-bold">⚠️ Pior Dia</p>
+                  <p className="text-dark fw-bold mb-1">{new Date(reportData.worstDay.date).toLocaleDateString('pt-BR')}</p>
+                  <small className="text-muted d-block mb-2">
+                    <i className="bi bi-egg-fried me-1"></i>{reportData.worstDay.count} refeição{reportData.worstDay.count !== 1 ? 's' : ''}
+                  </small>
+                  <small className="text-muted d-block mb-2">
+                    <i className="bi bi-fire me-1"></i>{reportData.worstDay.totalCals} kcal
+                  </small>
+                  <div className="pt-2 border-top">
+                    <small className="text-danger fw-bold">Qualidade: {reportData.worstDay.avgQuality.toFixed(1)}/10</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Distribuição por Período */}
+            <div className="card p-4 border-0 shadow-sm">
+              <h3 className="h6 fw-bold text-dark mb-4">
+                <i className="bi bi-clock-history text-warning me-2"></i>Distribuição por Período do Dia
+              </h3>
+
+              <div className="row g-3">
+                {/* Manhã */}
+                <div className="col-md-6 col-lg-3">
+                  <div className="bg-light p-3 rounded-3 text-center">
+                    <div className="h4 fw-black text-primary mb-1">🌅</div>
+                    <p className="fw-bold text-dark mb-1">Manhã</p>
+                    <p className="text-muted small mb-0">06:00 - 12:00</p>
+                    <div className="mt-3 pt-3 border-top">
+                      <h5 className="fw-black text-primary mb-0">{reportData.periodDistribution['Manhã']}</h5>
+                      <small className="text-muted">refeição{reportData.periodDistribution['Manhã'] !== 1 ? 's' : ''}</small>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarde */}
+                <div className="col-md-6 col-lg-3">
+                  <div className="bg-light p-3 rounded-3 text-center">
+                    <div className="h4 fw-black text-warning mb-1">☀️</div>
+                    <p className="fw-bold text-dark mb-1">Tarde</p>
+                    <p className="text-muted small mb-0">12:00 - 18:00</p>
+                    <div className="mt-3 pt-3 border-top">
+                      <h5 className="fw-black text-warning mb-0">{reportData.periodDistribution['Tarde']}</h5>
+                      <small className="text-muted">refeição{reportData.periodDistribution['Tarde'] !== 1 ? 's' : ''}</small>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Noite */}
+                <div className="col-md-6 col-lg-3">
+                  <div className="bg-light p-3 rounded-3 text-center">
+                    <div className="h4 fw-black text-secondary mb-1">🌙</div>
+                    <p className="fw-bold text-dark mb-1">Noite</p>
+                    <p className="text-muted small mb-0">18:00 - 24:00</p>
+                    <div className="mt-3 pt-3 border-top">
+                      <h5 className="fw-black text-secondary mb-0">{reportData.periodDistribution['Noite']}</h5>
+                      <small className="text-muted">refeição{reportData.periodDistribution['Noite'] !== 1 ? 's' : ''}</small>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Madrugada */}
+                <div className="col-md-6 col-lg-3">
+                  <div className="bg-light p-3 rounded-3 text-center">
+                    <div className="h4 fw-black text-dark mb-1">🌌</div>
+                    <p className="fw-bold text-dark mb-1">Madrugada</p>
+                    <p className="text-muted small mb-0">00:00 - 06:00</p>
+                    <div className="mt-3 pt-3 border-top">
+                      <h5 className="fw-black text-dark mb-0">{reportData.periodDistribution['Madrugada']}</h5>
+                      <small className="text-muted">refeição{reportData.periodDistribution['Madrugada'] !== 1 ? 's' : ''}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {activeTab === 'reports' && !reportData && (
+          <div className="card p-5 border-0 text-center shadow-sm">
+             <i className="bi bi-graph-up fs-1 text-muted mb-3"></i>
+             <p className="text-secondary mb-0">Registre refeições para visualizar relatórios detalhados.</p>
+          </div>
+          )}
         </div>
-      </div>
-    </div>
   );
 };
 

@@ -11,6 +11,9 @@ interface Meal {
   mealType: string;
   consumedSoda?: boolean;
   consumedAlcohol?: boolean;
+  consumedWater?: boolean;
+  consumedNaturalJuice?: boolean;
+  consumedIndustrialJuice?: boolean;
 }
 
 const Nutrition: React.FC = () => {
@@ -21,6 +24,9 @@ const Nutrition: React.FC = () => {
   const [mealType, setMealType] = useState('Almoço');
   const [consumedSoda, setConsumedSoda] = useState(false);
   const [consumedAlcohol, setConsumedAlcohol] = useState(false);
+  const [consumedWater, setConsumedWater] = useState(false);
+  const [consumedNaturalJuice, setConsumedNaturalJuice] = useState(false);
+  const [consumedIndustrialJuice, setConsumedIndustrialJuice] = useState(false);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,7 +35,7 @@ const Nutrition: React.FC = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
 
-  const mealTypes = ['Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar', 'Ceia', 'Pré-Treino', 'Pós-Treino'];
+  const mealTypes = ['Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar', 'Ceia', 'Pré-Treino', 'Pós-Treino', 'Outro'];
 
   const fetchMeals = async () => {
     try {
@@ -51,12 +57,12 @@ const Nutrition: React.FC = () => {
     try {
       if (editingMeal) {
         await axios.put(`${API_BASE_URL}/api/nutrition/${editingMeal.id}`, {
-          date, time, mealType, calories, consumedSoda, consumedAlcohol, notes: description
+          date, time, mealType, calories, consumedSoda, consumedAlcohol, consumedWater, consumedNaturalJuice, consumedIndustrialJuice, notes: description
         }, { headers });
         setMessage('✅ Refeição atualizada!');
       } else {
         await axios.post(`${API_BASE_URL}/api/nutrition`, {
-          date, time, mealType, calories, consumedSoda, consumedAlcohol, notes: description
+          date, time, mealType, calories, consumedSoda, consumedAlcohol, consumedWater, consumedNaturalJuice, consumedIndustrialJuice, notes: description
         }, { headers });
         setMessage('✅ Refeição registrada!');
       }
@@ -76,8 +82,11 @@ const Nutrition: React.FC = () => {
     setDescription(meal.description);
     setCalories(meal.calories);
     setMealType(meal.mealType);
-    setConsumedSoda(false);
-    setConsumedAlcohol(false);
+    setConsumedSoda(meal.consumedSoda || false);
+    setConsumedAlcohol(meal.consumedAlcohol || false);
+    setConsumedWater(meal.consumedWater || false);
+    setConsumedNaturalJuice(meal.consumedNaturalJuice || false);
+    setConsumedIndustrialJuice(meal.consumedIndustrialJuice || false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -101,7 +110,20 @@ const Nutrition: React.FC = () => {
     setMealType('Almoço');
     setConsumedSoda(false);
     setConsumedAlcohol(false);
+    setConsumedWater(false);
+    setConsumedNaturalJuice(false);
+    setConsumedIndustrialJuice(false);
     setEditingMeal(null);
+  };
+
+  const renderBeverageBadges = (meal: Meal) => {
+    const badges = [];
+    if (meal.consumedAlcohol) badges.push(<span key="alcohol" className="badge bg-danger me-2 mb-1">🍺 Álcool</span>);
+    if (meal.consumedIndustrialJuice) badges.push(<span key="indjuice" className="badge bg-warning me-2 mb-1">🧴 Suco Industrial</span>);
+    if (meal.consumedSoda) badges.push(<span key="soda" className="badge bg-warning-subtle text-warning me-2 mb-1">🥤 Refrigerante</span>);
+    if (meal.consumedNaturalJuice) badges.push(<span key="natjuice" className="badge bg-info me-2 mb-1">🍊 Suco Natural</span>);
+    if (meal.consumedWater) badges.push(<span key="water" className="badge bg-success me-2 mb-1">💧 Água</span>);
+    return badges;
   };
 
   const totalCalories = meals.reduce((acc, m) => acc + m.calories, 0);
@@ -186,11 +208,11 @@ const Nutrition: React.FC = () => {
                     onChange={(e) => setConsumedSoda(e.target.checked)}
                   />
                   <label className="form-check-label small text-secondary" htmlFor="sodaCheck">
-                    Continha refrigerante
+                    🥤 Continha refrigerante
                   </label>
                 </div>
               </div>
-              <div className="mb-4">
+              <div className="mb-3">
                 <div className="form-check">
                   <input 
                     type="checkbox" 
@@ -200,7 +222,49 @@ const Nutrition: React.FC = () => {
                     onChange={(e) => setConsumedAlcohol(e.target.checked)}
                   />
                   <label className="form-check-label small text-secondary" htmlFor="alcoholCheck">
-                    Continha álcool
+                    🍺 Continha álcool
+                  </label>
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="waterCheck"
+                    checked={consumedWater}
+                    onChange={(e) => setConsumedWater(e.target.checked)}
+                  />
+                  <label className="form-check-label small text-secondary" htmlFor="waterCheck">
+                    💧 Continha água
+                  </label>
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="naturalJuiceCheck"
+                    checked={consumedNaturalJuice}
+                    onChange={(e) => setConsumedNaturalJuice(e.target.checked)}
+                  />
+                  <label className="form-check-label small text-secondary" htmlFor="naturalJuiceCheck">
+                    🍊 Continha suco natural
+                  </label>
+                </div>
+              </div>
+              <div className="mb-4">
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="industrialJuiceCheck"
+                    checked={consumedIndustrialJuice}
+                    onChange={(e) => setConsumedIndustrialJuice(e.target.checked)}
+                  />
+                  <label className="form-check-label small text-secondary" htmlFor="industrialJuiceCheck">
+                    🧴 Continha suco industrial
                   </label>
                 </div>
               </div>
@@ -233,17 +297,17 @@ const Nutrition: React.FC = () => {
                             <div className="h4 fw-black mb-0">{new Date(meal.date).getDate() + 1}</div>
                          </div>
                          <div>
-                            <div className="fw-bold text-dark mb-1">
+                            <div className="fw-bold text-dark mb-2">
                                {meal.mealType}
-                               <span className="badge bg-light text-success ms-2 border border-success-subtle fw-bold" style={{fontSize: '10px'}}>{meal.calories} kcal</span>
+                               <span className="badge bg-light text-success ms-2 border border-success-subtle fw-bold" style={{fontSize: '11px'}}>{meal.calories} kcal</span>
                             </div>
-                            <p className="text-secondary small mb-0 pe-4">{meal.description}</p>
-                            {(meal.consumedSoda || meal.consumedAlcohol) && (
-                              <div className="mt-2">
-                                {meal.consumedSoda && <span className="badge bg-warning me-2">🥤 Refrigerante</span>}
-                                {meal.consumedAlcohol && <span className="badge bg-danger">🍺 Álcool</span>}
-                              </div>
-                            )}
+                            <div className="mb-2">
+                              <p className="text-secondary small mb-1"><strong>Refeição:</strong></p>
+                              <p className="text-dark small mb-2 ps-2 border-start border-success-subtle">{meal.description}</p>
+                            </div>
+                            <div className="mt-2">
+                              {renderBeverageBadges(meal).length > 0 && renderBeverageBadges(meal)}
+                            </div>
                          </div>
                       </div>
                       <div className="d-flex gap-2">

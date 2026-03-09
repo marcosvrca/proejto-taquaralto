@@ -43,17 +43,22 @@ const Dashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Buscar dados de todos os módulos
-      const [sleepRes, workoutRes, nutritionRes] = await Promise.all([
+      // Buscar dados de todos os módulos com Promise.allSettled para não falhar se um endpoint não funcionar
+      const [sleepRes, workoutRes, nutritionRes] = await Promise.allSettled([
         axios.get(`${API_BASE_URL}/api/sleep/reports?period=${period}`, { headers }),
         axios.get(`${API_BASE_URL}/api/workouts/reports?period=${period}`, { headers }),
         axios.get(`${API_BASE_URL}/api/nutrition/reports?period=${period}`, { headers }),
       ]);
 
+      // Extrair dados ou usar valores padrão se falhar
+      const sleepData = sleepRes.status === 'fulfilled' ? sleepRes.value.data : { records: [], bestDay: null, worstDay: null, weeklyAverage: 0, dailyAverage: 0 };
+      const workoutData = workoutRes.status === 'fulfilled' ? workoutRes.value.data : { totalWorkouts: 0, totalMinutes: 0, mostPracticedType: '', mostActivePeriod: '' };
+      const nutritionData = nutritionRes.status === 'fulfilled' ? nutritionRes.value.data : { totalMeals: 0, totalCalories: 0, dayWithMostMeals: null, maxCalories: 0 };
+
       // Calcular ranking baseado nos dados
-      const sleepScore = calculateSleepScore(sleepRes.data);
-      const workoutScore = calculateWorkoutScore(workoutRes.data);
-      const nutritionScore = calculateNutritionScore(nutritionRes.data);
+      const sleepScore = calculateSleepScore(sleepData);
+      const workoutScore = calculateWorkoutScore(workoutData);
+      const nutritionScore = calculateNutritionScore(nutritionData);
       const overallScore = Math.round((sleepScore + workoutScore + nutritionScore) / 3);
 
       const ranking = {
@@ -64,12 +69,30 @@ const Dashboard: React.FC = () => {
         rank: getRank(overallScore)
       };
 
-      setDashboardData({
-        sleep: sleepRes.data,
-        workouts: workoutRes.data,
-        nutrition: nutritionRes.data,
+      // Mapear dados para o formato esperado pelo Dashboard
+      const mappedData = {
+        sleep: {
+          totalSleepHours: sleepData.weeklyAverage ? sleepData.weeklyAverage / 60 : 0, // converter minutos para horas
+          averageSleepHours: sleepData.dailyAverage ? sleepData.dailyAverage / 60 : 0, // converter minutos para horas
+          bestSleepDay: sleepData.bestDay ? sleepData.bestDay.date : null,
+          worstSleepDay: sleepData.worstDay ? sleepData.worstDay.date : null,
+        },
+        workouts: {
+          totalWorkouts: workoutData.totalWorkouts || 0,
+          totalWorkoutMinutes: workoutData.totalMinutes || 0,
+          mostPracticedType: workoutData.mostPracticedType || '',
+          mostActivePeriod: workoutData.mostActivePeriod || '',
+        },
+        nutrition: {
+          totalMeals: nutritionData.totalMeals || 0,
+          totalCalories: nutritionData.totalCalories || 0,
+          dayWithMostMeals: nutritionData.dayWithMostMeals || null,
+          dayWithMostCalories: nutritionData.maxCalories || 0,
+        },
         ranking
-      });
+      };
+
+      setDashboardData(mappedData);
     } catch (error: any) {
       setMessage('❌ Erro ao carregar dados do dashboard');
       console.error('Erro no dashboard:', error);
@@ -79,9 +102,9 @@ const Dashboard: React.FC = () => {
   };
 
   const calculateSleepScore = (sleepData: any): number => {
-    if (!sleepData || sleepData.totalNights === 0) return 0;
+    if (!sleepData || sleepData.records?.length === 0) return 0;
 
-    const avgHours = sleepData.averageSleepHours || 0;
+    const avgHours = sleepData.dailyAverage ? sleepData.dailyAverage / 60 : 0; // dailyAverage está em minutos
     // Score baseado em 7-9 horas sendo ideal
     if (avgHours >= 7 && avgHours <= 9) return 100;
     if (avgHours >= 6 && avgHours < 7) return 80;
@@ -95,7 +118,7 @@ const Dashboard: React.FC = () => {
     if (!workoutData || workoutData.totalWorkouts === 0) return 0;
 
     const totalWorkouts = workoutData.totalWorkouts || 0;
-    const totalMinutes = workoutData.totalWorkoutMinutes || 0;
+    const totalMinutes = workoutData.totalMinutes || 0; // Campo correto retornado pelo controlador
 
     // Score baseado em frequência e duração
     let score = 0;

@@ -38,23 +38,37 @@ const Home: React.FC = () => {
     try {
       setLoading(true);
 
-      // Buscar dados da semana atual
-      const [sleepRes, workoutRes, nutritionRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/sleep/reports?period=week`, { headers }).catch(() => ({ data: { totalNights: 0, averageSleepHours: 0 } })),
-        axios.get(`${API_BASE_URL}/api/workouts/reports?period=week`, { headers }).catch(() => ({ data: { totalWorkouts: 0, totalWorkoutMinutes: 0 } })),
-        axios.get(`${API_BASE_URL}/api/nutrition/reports?period=week`, { headers }).catch(() => ({ data: { totalMeals: 0, totalCalories: 0 } })),
+      // Buscar dados da semana atual com Promise.allSettled
+      const [sleepRes, workoutRes, nutritionRes] = await Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/sleep/reports?period=week`, { headers }),
+        axios.get(`${API_BASE_URL}/api/workouts/reports?period=week`, { headers }),
+        axios.get(`${API_BASE_URL}/api/nutrition/reports?period=week`, { headers }),
       ]);
 
+      // Extrair dados ou usar valores padrão se falhar
+      const sleepData = sleepRes.status === 'fulfilled' ? sleepRes.value.data : { records: [], bestDay: null, worstDay: null, weeklyAverage: 0, dailyAverage: 0 };
+      const workoutData = workoutRes.status === 'fulfilled' ? workoutRes.value.data : { totalWorkouts: 0, totalMinutes: 0, mostPracticedType: '', mostActivePeriod: '' };
+      const nutritionData = nutritionRes.status === 'fulfilled' ? nutritionRes.value.data : { totalMeals: 0, totalCalories: 0, dayWithMostMeals: null, maxCalories: 0 };
+
       // Calcular ranking
-      const sleepScore = calculateSleepScore(sleepRes.data);
-      const workoutScore = calculateWorkoutScore(workoutRes.data);
-      const nutritionScore = calculateNutritionScore(nutritionRes.data);
+      const sleepScore = calculateSleepScore(sleepData);
+      const workoutScore = calculateWorkoutScore(workoutData);
+      const nutritionScore = calculateNutritionScore(nutritionData);
       const overallScore = Math.round((sleepScore + workoutScore + nutritionScore) / 3);
 
       setStats({
-        sleep: sleepRes.data,
-        workouts: workoutRes.data,
-        nutrition: nutritionRes.data,
+        sleep: {
+          totalNights: sleepData.records?.length || 0,
+          averageSleepHours: sleepData.dailyAverage ? sleepData.dailyAverage / 60 : 0,
+        },
+        workouts: {
+          totalWorkouts: workoutData.totalWorkouts || 0,
+          totalWorkoutMinutes: workoutData.totalMinutes || 0,
+        },
+        nutrition: {
+          totalMeals: nutritionData.totalMeals || 0,
+          totalCalories: nutritionData.totalCalories || 0,
+        },
         ranking: {
           sleepScore,
           workoutScore,
@@ -71,8 +85,8 @@ const Home: React.FC = () => {
   };
 
   const calculateSleepScore = (sleepData: any): number => {
-    if (!sleepData || sleepData.totalNights === 0) return 0;
-    const avgHours = sleepData.averageSleepHours || 0;
+    if (!sleepData || sleepData.records?.length === 0) return 0;
+    const avgHours = sleepData.dailyAverage ? sleepData.dailyAverage / 60 : 0;
     if (avgHours >= 7 && avgHours <= 9) return 100;
     if (avgHours >= 6 && avgHours < 7) return 80;
     if (avgHours >= 9 && avgHours <= 10) return 90;
@@ -84,7 +98,7 @@ const Home: React.FC = () => {
   const calculateWorkoutScore = (workoutData: any): number => {
     if (!workoutData || workoutData.totalWorkouts === 0) return 0;
     const totalWorkouts = workoutData.totalWorkouts || 0;
-    const totalMinutes = workoutData.totalWorkoutMinutes || 0;
+    const totalMinutes = workoutData.totalMinutes || 0;
     let score = 0;
     if (totalWorkouts >= 5) score += 50;
     else if (totalWorkouts >= 3) score += 30;

@@ -11,6 +11,7 @@ import Nutrition from './pages/Nutrition';
 import Pains from './pages/Pains';
 import Goals from './pages/Goals';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
 const AppRoutes: React.FC = () => {
@@ -25,6 +26,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/sleep" element={<ProtectedRoute><Sleep /></ProtectedRoute>} />
           <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
           <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />

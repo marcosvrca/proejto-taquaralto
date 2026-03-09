@@ -5,78 +5,64 @@ import { API_BASE_URL } from '../config';
 interface Workout {
   id: number;
   date: string;
-  time: string;
   type: string;
-  intensity: string;
-  notes: string;
   durationMinutes: number;
+  intensity: 'Baixa' | 'Média' | 'Alta';
+  observations: string;
 }
 
 const Workouts: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
-  const [type, setType] = useState('musculacao');
-  const [intensity, setIntensity] = useState('moderado');
-  const [notes, setNotes] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState('');
+  const [type, setType] = useState('Musculação');
+  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [intensity, setIntensity] = useState<'Baixa' | 'Média' | 'Alta'>('Média');
+  const [observations, setObservations] = useState('');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [period, setPeriod] = useState('week');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showReportsModal, setShowReportsModal] = useState(false);
-  const [reports, setReports] = useState<any>(null);
-  const [reportsPeriod, setReportsPeriod] = useState('week');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
 
   const workoutTypes = [
-    { value: 'futsal', label: 'Futsal', emoji: '⚽' },
-    { value: 'futebol', label: 'Futebol', emoji: '⚽' },
-    { value: 'terrao', label: 'Terrão', emoji: '🌾' },
-    { value: 'society', label: 'Society', emoji: '⚽' },
-    { value: 'volei', label: 'Vôlei', emoji: '🏐' },
-    { value: 'futevolei', label: 'Futevôlei', emoji: '🏐' },
-    { value: 'basquete', label: 'Basquete', emoji: '🏀' },
-    { value: 'natacao', label: 'Natação', emoji: '🏊' },
-    { value: 'lutas', label: 'Lutas', emoji: '🥊' },
-    { value: 'musculacao', label: 'Musculação', emoji: '💪' },
-    { value: 'corrida', label: 'Corrida', emoji: '🏃' },
-    { value: 'mobilidade', label: 'Mobilidade', emoji: '🧘' },
-    { value: 'treino_forca', label: 'Treino de Força', emoji: '🏋️' },
-    { value: 'treino_agilidade', label: 'Treino de Agilidade', emoji: '⚡' },
+    'Musculação', 'Futsal', 'Corrida', 'Caminhada', 
+    'Natação', 'Ciclismo', 'Crossfit', 'Outro'
   ];
 
-  const intensityOptions = [
-    { value: 'leve', label: 'Leve', emoji: '😌' },
-    { value: 'moderado', label: 'Moderado', emoji: '👍' },
-    { value: 'intenso', label: 'Intenso', emoji: '🔥' },
-    { value: 'pesado', label: 'Pesado', emoji: '💪' },
-    { value: 'exaustivo', label: 'Exaustivo', emoji: '😵' },
-    { value: 'outros', label: 'Outros', emoji: '🤔' },
-  ];
+  const fetchWorkouts = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/workouts`, { headers });
+      setWorkouts(res.data);
+    } catch (error) {
+      console.error('Erro ao buscar treinos');
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/workouts`, {
-        date,
-        time,
-        type,
-        intensity,
-        notes,
-        durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
-      }, { headers });
-
-      setMessage('✅ Treino registrado!');
+      if (editingWorkout) {
+        await axios.put(`${API_BASE_URL}/api/workouts/${editingWorkout.id}`, {
+          date, type, durationMinutes, intensity, observations
+        }, { headers });
+        setMessage('✅ Treino atualizado!');
+      } else {
+        await axios.post(`${API_BASE_URL}/api/workouts`, {
+          date, type, durationMinutes, intensity, observations
+        }, { headers });
+        setMessage('✅ Treino registrado!');
+      }
       fetchWorkouts();
       resetForm();
       setTimeout(() => setMessage(''), 3000);
     } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
+      setMessage('❌ ' + (error.response?.data?.message || 'Erro ao processar'));
     }
     setLoading(false);
   };
@@ -84,406 +70,177 @@ const Workouts: React.FC = () => {
   const handleEdit = (workout: Workout) => {
     setEditingWorkout(workout);
     setDate(workout.date);
-    setTime(workout.time);
     setType(workout.type);
+    setDurationMinutes(workout.durationMinutes);
     setIntensity(workout.intensity);
-    setNotes(workout.notes || '');
-    setDurationMinutes(workout.durationMinutes?.toString() || '');
-    setShowEditModal(true);
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingWorkout) return;
-
-    setLoading(true);
-    try {
-      await axios.put(`${API_BASE_URL}/api/workouts/${editingWorkout.id}`, {
-        date,
-        time,
-        type,
-        intensity,
-        notes,
-        durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
-      }, { headers });
-
-      setMessage('✅ Treino atualizado!');
-      fetchWorkouts();
-      setShowEditModal(false);
-      resetForm();
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
-    }
-    setLoading(false);
+    setObservations(workout.observations);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja deletar este treino?')) return;
-
+    if (!confirm('Deseja remover este treino?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/workouts/${id}`, { headers });
-      setMessage('✅ Treino deletado!');
+      setMessage('✅ Treino removido');
       fetchWorkouts();
       setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
-    }
-  };
-
-  const fetchWorkouts = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/workouts?period=${period}`, { headers });
-      setWorkouts(res.data.workouts);
-    } catch (error: any) {
-      setMessage('❌ Erro ao carregar treinos');
-    }
-  };
-
-  const fetchReports = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/workouts/reports?period=${reportsPeriod}`, { headers });
-      setReports(res.data);
-    } catch (error: any) {
-      setMessage('❌ Erro ao carregar relatórios');
+    } catch (error) {
+      setMessage('❌ Erro ao deletar');
     }
   };
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
-    setTime(new Date().toTimeString().slice(0, 5));
-    setType('musculacao');
-    setIntensity('moderado');
-    setNotes('');
-    setDurationMinutes('');
+    setType('Musculação');
+    setDurationMinutes(60);
+    setIntensity('Média');
+    setObservations('');
     setEditingWorkout(null);
   };
 
-  const getIntensityLabel = (intensity: string) => {
-    const option = intensityOptions.find(opt => opt.value === intensity);
-    return option ? `${option.emoji} ${option.label}` : intensity;
-  };
-
-  const getTypeLabel = (type: string) => {
-    const option = workoutTypes.find(opt => opt.value === type);
-    return option ? `${option.emoji} ${option.label}` : type;
-  };
-
-  const formatDuration = (minutes: number) => {
-    if (!minutes) return '-';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  useEffect(() => {
-    fetchWorkouts();
-  }, [period]);
-
-  useEffect(() => {
-    if (showReportsModal) {
-      fetchReports();
-    }
-  }, [showReportsModal, reportsPeriod]);
+  // Stats calculation
+  const totalMinutes = workouts.reduce((acc, w) => acc + w.durationMinutes, 0);
+  const workoutCount = workouts.length;
+  const highIntensityCount = workouts.filter(w => w.intensity === 'Alta').length;
 
   return (
-    <div className="container-fluid py-4">
-      <h1 className="mb-4">💪 Registro de Treinos</h1>
-
-      {message && (
-        <div className="alert alert-info alert-dismissible fade show" role="alert">
-          {message}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setMessage('')}
-          ></button>
-        </div>
-      )}
-
-      <div className="row">
-        {/* Coluna Esquerda - Registro de Treino */}
-        <div className="col-lg-5 mb-4">
-          <div className="card shadow-sm">
-            <div className="card-header bg-primary text-white">
-              <h5 className="mb-0">🏋️ Registrar Treino</h5>
-            </div>
-            <div className="card-body">
-              <form onSubmit={showEditModal ? handleUpdate : handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Data</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                    className="form-control"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Hora</label>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    required
-                    className="form-control"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Tipo de Treino</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    required
-                    className="form-control"
-                  >
-                    {workoutTypes.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.emoji} {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Intensidade do Treino</label>
-                  <select
-                    value={intensity}
-                    onChange={(e) => setIntensity(e.target.value)}
-                    required
-                    className="form-control"
-                  >
-                    {intensityOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.emoji} {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Duração (minutos)</label>
-                  <input
-                    type="number"
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                    placeholder="Opcional"
-                    className="form-control"
-                    min="1"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Observações</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Opcional"
-                    className="form-control"
-                    rows={3}
-                  />
-                </div>
-                <div className="d-flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn btn-primary flex-fill"
-                  >
-                    {loading ? 'Salvando...' : showEditModal ? 'Atualizar' : 'Registrar'}
-                  </button>
-                  {showEditModal && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowEditModal(false);
-                        resetForm();
-                      }}
-                      className="btn btn-secondary"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Direita - Histórico de Treinos */}
-        <div className="col-lg-7">
-          <div className="card shadow-sm">
-            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">📋 Histórico de Treinos</h5>
-              <div className="d-flex gap-2 align-items-center">
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="form-select form-select-sm w-auto"
-                >
-                  <option value="week">Semanal</option>
-                  <option value="month">Mensal</option>
-                  <option value="year">Anual</option>
-                </select>
-                <button
-                  onClick={() => setShowReportsModal(true)}
-                  className="btn btn-sm btn-outline-light"
-                >
-                  📊 Relatórios
-                </button>
-              </div>
-            </div>
-            <div className="card-body" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-              {workouts.length > 0 ? (
-                <div className="list-group">
-                  {workouts.map(workout => (
-                    <div key={workout.id} className="list-group-item">
-                      <div className="d-flex w-100 justify-content-between align-items-start">
-                        <div className="flex-grow-1">
-                          <div className="d-flex justify-content-between align-items-start mb-2">
-                            <h6 className="mb-1 fw-bold">{workout.date} às {workout.time}</h6>
-                            <div className="d-flex gap-1">
-                              <button
-                                onClick={() => handleEdit(workout)}
-                                className="btn btn-sm btn-outline-primary"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleDelete(workout.id)}
-                                className="btn btn-sm btn-outline-danger"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </div>
-                          <p className="mb-1">
-                            <span className="fw-semibold">Tipo:</span> {getTypeLabel(workout.type)}
-                          </p>
-                          <p className="mb-1">
-                            <span className="fw-semibold">Intensidade:</span> {getIntensityLabel(workout.intensity)}
-                          </p>
-                          {workout.durationMinutes && (
-                            <p className="mb-1">
-                              <span className="fw-semibold">Duração:</span> {formatDuration(workout.durationMinutes)}
-                            </p>
-                          )}
-                          {workout.notes && (
-                            <p className="mb-1 small text-muted">
-                              <span className="fw-semibold">Obs:</span> {workout.notes}
-                            </p>
-                          )}
-                          <small className="text-muted">ID: #{workout.id}</small>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted">(Nenhum treino registrado ainda)</p>
-              )}
-            </div>
-          </div>
+    <div className="container py-5 mt-5">
+      <div className="row align-items-center mb-5">
+        <div className="col-12">
+          <h1 className="fw-black text-dark mb-1">
+            <i className="bi bi-fire text-danger me-2"></i>
+            Treinos & Atividade
+          </h1>
+          <p className="text-secondary lead fs-6">Monitore sua performance e evolução física constante.</p>
         </div>
       </div>
 
-      {/* Modal de Relatórios */}
-      {showReportsModal && (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">📊 Relatórios de Treinos</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowReportsModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Período</label>
-                  <select
-                    value={reportsPeriod}
-                    onChange={(e) => setReportsPeriod(e.target.value)}
-                    className="form-control"
-                  >
-                    <option value="week">Semanal</option>
-                    <option value="month">Mensal</option>
-                    <option value="year">Anual</option>
-                  </select>
-                </div>
-
-                {reports && (
-                  <div className="row">
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🏆 Tipo Mais Praticado</h6>
-                          <p className="card-text fw-bold">{getTypeLabel(reports.mostPracticedType)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🕐 Período Mais Ativo</h6>
-                          <p className="card-text fw-bold">
-                            {reports.mostActivePeriod === 'manha' ? '🌅 Manhã' :
-                             reports.mostActivePeriod === 'tarde' ? '☀️ Tarde' : '🌙 Noite'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">⏱️ Total de Minutos</h6>
-                          <p className="card-text fw-bold">{reports.totalMinutes} min</p>
-                          <small className="text-muted">
-                            ≈ {Math.round(reports.totalMinutes / 60 * 10) / 10} horas
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">📈 Total de Treinos</h6>
-                          <p className="card-text fw-bold">{reports.totalWorkouts}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">💪 Distribuição por Intensidade</h6>
-                          {Object.entries(reports.intensityDistribution).map(([intensity, count]: [string, any]) => (
-                            <div key={intensity} className="d-flex justify-content-between">
-                              <span>{getIntensityLabel(intensity)}</span>
-                              <span className="badge bg-secondary">{count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">⚽ Distribuição por Tipo</h6>
-                          {Object.entries(reports.typeDistribution).map(([type, count]: [string, any]) => (
-                            <div key={type} className="d-flex justify-content-between">
-                              <span>{getTypeLabel(type)}</span>
-                              <span className="badge bg-primary">{count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+      {message && (
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+          <div className="d-flex align-items-center">
+            <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
+            {message}
           </div>
+          <button type="button" className="btn-close" onClick={() => setMessage('')}></button>
         </div>
       )}
+
+      {/* Stats Cards */}
+      <div className="row g-4 mb-5">
+         <div className="col-md-4">
+            <div className="card p-4 border-0 h-100 border-start border-danger border-4">
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Total de Treinos</p>
+               <h3 className="fw-black text-dark mb-0">{workoutCount} sessões</h3>
+               <div className="small text-muted mt-2">Histórico acumulado</div>
+            </div>
+         </div>
+         <div className="col-md-4">
+            <div className="card p-4 border-0 h-100 border-start border-primary border-4">
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Tempo em Atividade</p>
+               <h3 className="fw-black text-dark mb-0">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</h3>
+               <div className="small text-muted mt-2">Dedicados à sua saúde</div>
+            </div>
+         </div>
+         <div className="col-md-4">
+            <div className="card p-4 border-0 h-100 border-start border-warning border-4">
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Alta Intensidade</p>
+               <h3 className="fw-black text-dark mb-0">{highIntensityCount} treinos</h3>
+               <div className="small text-muted mt-2">Esforço máximo registrado</div>
+            </div>
+         </div>
+      </div>
+
+      <div className="row g-5">
+        <div className="col-lg-4">
+          <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
+            <h2 className="h5 fw-bold text-dark mb-4">
+               <i className={`bi ${editingWorkout ? 'bi-pencil-square' : 'bi-plus-circle-fill'} text-danger me-2`}></i>
+               {editingWorkout ? 'Editar Treino' : 'Novo Registro'}
+            </h2>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Data</label>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" />
+              </div>
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Modalidade</label>
+                <select value={type} onChange={(e) => setType(e.target.value)} className="form-select bg-light border-0 py-2 rounded-3">
+                  {workoutTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="row g-3 mb-3">
+                <div className="col-6">
+                  <label className="form-label small fw-bold text-secondary">Duração (min)</label>
+                  <input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} required className="form-control bg-light border-0 py-2 rounded-3" />
+                </div>
+                <div className="col-6">
+                  <label className="form-label small fw-bold text-secondary">Intensidade</label>
+                  <select value={intensity} onChange={(e) => setIntensity(e.target.value as any)} className="form-select bg-light border-0 py-2 rounded-3">
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="form-label small fw-bold text-secondary">Observações (opcional)</label>
+                <textarea value={observations} onChange={(e) => setObservations(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" rows={2} placeholder="Ex: Treino de pernas, foco em..."></textarea>
+              </div>
+              <button type="submit" disabled={loading} className="btn btn-danger w-100 py-2 fw-bold shadow-sm mb-2">
+                {loading ? <span className="spinner-border spinner-border-sm"></span> : (editingWorkout ? 'Atualizar Treino' : 'Registrar Treino')}
+              </button>
+              {editingWorkout && (
+                <button type="button" onClick={resetForm} className="btn btn-link w-100 text-secondary text-decoration-none small fw-bold">Cancelar</button>
+              )}
+            </form>
+          </div>
+        </div>
+
+        <div className="col-lg-8">
+          <div className="d-flex align-items-center justify-content-between mb-4">
+             <h2 className="h5 fw-bold text-dark mb-0">Atividades Registradas</h2>
+             <span className="badge bg-white text-dark shadow-sm px-3 py-2 rounded-3">{workouts.length} sessões</span>
+          </div>
+
+          <div className="list-group list-group-flush bg-transparent">
+            {workouts.length > 0 ? (
+              workouts.map(workout => (
+                <div key={workout.id} className="card border-0 p-3 mb-3 d-flex flex-row align-items-center justify-content-between shadow-sm">
+                   <div className="d-flex align-items-center">
+                      <div className="bg-danger-subtle text-danger rounded-3 text-center p-2 me-4" style={{minWidth: '60px'}}>
+                         <div className="text-uppercase small fw-black" style={{fontSize: '10px'}}>
+                            {new Date(workout.date).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                         </div>
+                         <div className="h4 fw-black mb-0">{new Date(workout.date).getDate() + 1}</div>
+                      </div>
+                      <div>
+                         <div className="fw-bold text-dark d-flex align-items-center mb-1">
+                            {workout.type}
+                            <span className={`badge ms-3 fw-bold ${workout.intensity === 'Alta' ? 'bg-danger-subtle text-danger' : workout.intensity === 'Média' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info'}`} style={{fontSize: '10px'}}>
+                               {workout.intensity.toUpperCase()}
+                            </span>
+                         </div>
+                         <p className="text-secondary small mb-0">
+                            <i className="bi bi-clock me-1"></i> {workout.durationMinutes} minutos
+                            {workout.observations && <span className="ms-2 opacity-75 d-none d-sm-inline">• {workout.observations.substring(0, 30)}...</span>}
+                         </p>
+                      </div>
+                   </div>
+                   <div className="d-flex gap-2">
+                      <button onClick={() => handleEdit(workout)} className="btn btn-light btn-sm rounded-circle p-2 border-0 shadow-sm"><i className="bi bi-pencil-fill text-primary"></i></button>
+                      <button onClick={() => handleDelete(workout.id)} className="btn btn-light btn-sm rounded-circle p-2 border-0 shadow-sm"><i className="bi bi-trash-fill text-danger"></i></button>
+                   </div>
+                </div>
+              ))
+            ) : (
+              <div className="card p-5 border-0 text-center shadow-sm">
+                 <i className="bi bi-activity fs-1 text-muted mb-3"></i>
+                 <p className="text-secondary mb-0">Nenhum treino registrado ainda.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

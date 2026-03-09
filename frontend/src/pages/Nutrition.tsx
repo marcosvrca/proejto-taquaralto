@@ -2,592 +2,215 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
-interface NutritionRecord {
+interface Meal {
   id: number;
   date: string;
-  time: string;
-  mealType: string;
+  description: string;
   calories: number;
-  consumedSoda: boolean;
-  consumedAlcohol: boolean;
-  notes: string;
+  mealType: string;
 }
 
 const Nutrition: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
-  const [mealType, setMealType] = useState('cafe_manha');
-  const [calories, setCalories] = useState('');
-  const [consumedSoda, setConsumedSoda] = useState(false);
-  const [consumedAlcohol, setConsumedAlcohol] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [nutrition, setNutrition] = useState<NutritionRecord[]>([]);
-  const [period, setPeriod] = useState('week');
-  const [message, setMessage] = useState('');
+  const [description, setDescription] = useState('');
+  const [calories, setCalories] = useState(0);
+  const [mealType, setMealType] = useState('Almoço');
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<NutritionRecord | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showReportsModal, setShowReportsModal] = useState(false);
-  const [reports, setReports] = useState<any>(null);
-  const [reportsPeriod, setReportsPeriod] = useState('week');
+  const [message, setMessage] = useState('');
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
 
-  const mealTypes = [
-    { value: 'cafe_manha', label: 'Café da Manhã', emoji: '🌅' },
-    { value: 'almoco', label: 'Almoço', emoji: '🌞' },
-    { value: 'lanche_tarde', label: 'Lanche da Tarde', emoji: '🕐' },
-    { value: 'jantar', label: 'Jantar', emoji: '🌙' },
-    { value: 'outro_horario', label: 'Outro Horário', emoji: '🍽️' },
-  ];
+  const mealTypes = ['Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar', 'Ceia', 'Pré-Treino', 'Pós-Treino'];
+
+  const fetchMeals = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/nutrition`, { headers });
+      setMeals(res.data);
+    } catch (error) {
+      console.error('Erro ao buscar refeições');
+    }
+  };
+
+  useEffect(() => {
+    fetchMeals();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/nutrition`, {
-        date,
-        time,
-        mealType,
-        calories: calories ? parseInt(calories) : 0,
-        consumedSoda,
-        consumedAlcohol,
-        notes,
-      }, { headers });
-
-      setMessage('✅ Alimentação registrada!');
-      fetchNutrition();
+      if (editingMeal) {
+        await axios.put(`${API_BASE_URL}/api/nutrition/${editingMeal.id}`, {
+          date, description, calories, mealType
+        }, { headers });
+        setMessage('✅ Refeição atualizada!');
+      } else {
+        await axios.post(`${API_BASE_URL}/api/nutrition`, {
+          date, description, calories, mealType
+        }, { headers });
+        setMessage('✅ Refeição registrada!');
+      }
+      fetchMeals();
       resetForm();
       setTimeout(() => setMessage(''), 3000);
     } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
+      setMessage('❌ ' + (error.response?.data?.message || 'Erro ao processar'));
     }
     setLoading(false);
   };
 
-  const handleEdit = (record: NutritionRecord) => {
-    setEditingRecord(record);
-    setDate(record.date);
-    setTime(record.time);
-    setMealType(record.mealType);
-    setCalories(record.calories.toString());
-    setConsumedSoda(record.consumedSoda);
-    setConsumedAlcohol(record.consumedAlcohol);
-    setNotes(record.notes || '');
-    setShowEditModal(true);
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRecord) return;
-
-    setLoading(true);
-    try {
-      await axios.put(`${API_BASE_URL}/api/nutrition/${editingRecord.id}`, {
-        date,
-        time,
-        mealType,
-        calories: calories ? parseInt(calories) : 0,
-        consumedSoda,
-        consumedAlcohol,
-        notes,
-      }, { headers });
-
-      setMessage('✅ Alimentação atualizada!');
-      fetchNutrition();
-      setShowEditModal(false);
-      resetForm();
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
-    }
-    setLoading(false);
+  const handleEdit = (meal: Meal) => {
+    setEditingMeal(meal);
+    setDate(meal.date);
+    setDescription(meal.description);
+    setCalories(meal.calories);
+    setMealType(meal.mealType);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja deletar este registro de alimentação?')) return;
-
+    if (!confirm('Deseja remover esta refeição?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/nutrition/${id}`, { headers });
-      setMessage('✅ Registro deletado!');
-      fetchNutrition();
+      setMessage('✅ Refeição removida');
+      fetchMeals();
       setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage('❌ ' + (error.response?.data?.message || 'Erro'));
-    }
-  };
-
-  const fetchNutrition = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/nutrition?period=${period}`, { headers });
-      setNutrition(res.data.nutrition);
-    } catch (error: any) {
-      setMessage('❌ Erro ao carregar alimentação');
-    }
-  };
-
-  const fetchReports = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/nutrition/reports?period=${reportsPeriod}`, { headers });
-      setReports(res.data);
-    } catch (error: any) {
-      setMessage('❌ Erro ao carregar relatórios');
+    } catch (error) {
+      setMessage('❌ Erro ao deletar');
     }
   };
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
-    setTime(new Date().toTimeString().slice(0, 5));
-    setMealType('cafe_manha');
-    setCalories('');
-    setConsumedSoda(false);
-    setConsumedAlcohol(false);
-    setNotes('');
-    setEditingRecord(null);
+    setDescription('');
+    setCalories(0);
+    setMealType('Almoço');
+    setEditingMeal(null);
   };
 
-  const getMealTypeLabel = (type: string) => {
-    const option = mealTypes.find(opt => opt.value === type);
-    return option ? `${option.emoji} ${option.label}` : type;
-  };
-
-  useEffect(() => {
-    fetchNutrition();
-  }, [period]);
-
-  useEffect(() => {
-    if (showReportsModal) {
-      fetchReports();
-    }
-  }, [showReportsModal, reportsPeriod]);
+  const totalCalories = meals.reduce((acc, m) => acc + m.calories, 0);
 
   return (
-    <div className="container-fluid py-4">
-      <h1 className="mb-4">🥗 Registro de Alimentação</h1>
-
-      {message && (
-        <div className="alert alert-info alert-dismissible fade show" role="alert">
-          {message}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setMessage('')}
-          ></button>
-        </div>
-      )}
-
-      {/* Formulário de Registro */}
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-header">
-              <h5 className="card-title mb-0">Registrar Refeição</h5>
-            </div>
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Data</label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      required
-                      className="form-control"
-                    />
-                  </div>
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label">Horário</label>
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      required
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Tipo de Refeição</label>
-                  <select
-                    value={mealType}
-                    onChange={(e) => setMealType(e.target.value)}
-                    required
-                    className="form-control"
-                  >
-                    {mealTypes.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.emoji} {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Calorias</label>
-                  <input
-                    type="number"
-                    placeholder="Calorias aproximadas"
-                    value={calories}
-                    onChange={(e) => setCalories(e.target.value)}
-                    required
-                    min="0"
-                    className="form-control"
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check">
-                    <input
-                      type="checkbox"
-                      id="consumedSoda"
-                      checked={consumedSoda}
-                      onChange={(e) => setConsumedSoda(e.target.checked)}
-                      className="form-check-input"
-                    />
-                    <label className="form-check-label" htmlFor="consumedSoda">
-                      🥤 Fez consumo de refrigerante?
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check">
-                    <input
-                      type="checkbox"
-                      id="consumedAlcohol"
-                      checked={consumedAlcohol}
-                      onChange={(e) => setConsumedAlcohol(e.target.checked)}
-                      className="form-check-input"
-                    />
-                    <label className="form-check-label" htmlFor="consumedAlcohol">
-                      🍺 Fez consumo de bebida alcoólica?
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Observações (opcional)</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="form-control"
-                    rows={3}
-                    placeholder="Ex: Salada, frutas, etc."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary w-100"
-                >
-                  {loading ? 'Registrando...' : '🍽️ Registrar Refeição'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        {/* Histórico */}
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h5 className="card-title mb-0">📋 Histórico de Alimentação</h5>
-              <div className="d-flex gap-2">
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="form-select form-select-sm"
-                  style={{ width: 'auto' }}
-                >
-                  <option value="week">Semana</option>
-                  <option value="month">Mês</option>
-                  <option value="year">Ano</option>
-                </select>
-                <button
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => setShowReportsModal(true)}
-                >
-                  📊 Relatórios
-                </button>
-              </div>
-            </div>
-            <div className="card-body" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-              {nutrition.length === 0 ? (
-                <p className="text-muted text-center">Nenhum registro encontrado</p>
-              ) : (
-                nutrition.map(record => (
-                  <div key={record.id} className="border-bottom mb-3 pb-3">
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h6 className="mb-1">{getMealTypeLabel(record.mealType)}</h6>
-                        <small className="text-muted">
-                          📅 {record.date} ⏰ {record.time}
-                        </small>
-                        <br />
-                        <small className="text-muted">
-                          🔥 {record.calories} cal
-                          {record.consumedSoda && ' 🥤'}
-                          {record.consumedAlcohol && ' 🍺'}
-                        </small>
-                        {record.notes && (
-                          <p className="mb-1 mt-1 small">{record.notes}</p>
-                        )}
-                      </div>
-                      <div className="btn-group btn-group-sm">
-                        <button
-                          className="btn btn-outline-secondary"
-                          onClick={() => handleEdit(record)}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="btn btn-outline-danger"
-                          onClick={() => handleDelete(record.id)}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+    <div className="container py-5 mt-5">
+      <div className="row align-items-center mb-5">
+        <div className="col-12">
+          <h1 className="fw-black text-dark mb-1">
+            <i className="bi bi-apple text-success me-2"></i>
+            Nutrição & Dieta
+          </h1>
+          <p className="text-secondary lead fs-6">Gerencie sua ingestão calórica e mantenha o equilíbrio nutricional.</p>
         </div>
       </div>
 
-      {/* Modal de Edição */}
-      {showEditModal && (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Editar Refeição</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowEditModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <form onSubmit={handleUpdate}>
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Data</label>
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        required
-                        className="form-control"
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Horário</label>
-                      <input
-                        type="time"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                        required
-                        className="form-control"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Tipo de Refeição</label>
-                    <select
-                      value={mealType}
-                      onChange={(e) => setMealType(e.target.value)}
-                      required
-                      className="form-control"
-                    >
-                      {mealTypes.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.emoji} {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Calorias</label>
-                    <input
-                      type="number"
-                      value={calories}
-                      onChange={(e) => setCalories(e.target.value)}
-                      required
-                      min="0"
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        id="editConsumedSoda"
-                        checked={consumedSoda}
-                        onChange={(e) => setConsumedSoda(e.target.checked)}
-                        className="form-check-input"
-                      />
-                      <label className="form-check-label" htmlFor="editConsumedSoda">
-                        🥤 Fez consumo de refrigerante?
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        id="editConsumedAlcohol"
-                        checked={consumedAlcohol}
-                        onChange={(e) => setConsumedAlcohol(e.target.checked)}
-                        className="form-check-input"
-                      />
-                      <label className="form-check-label" htmlFor="editConsumedAlcohol">
-                        🍺 Fez consumo de bebida alcoólica?
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Observações</label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="form-control"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="d-flex gap-2">
-                    <button type="submit" disabled={loading} className="btn btn-primary">
-                      {loading ? 'Atualizando...' : '💾 Atualizar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setShowEditModal(false)}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
+      {message && (
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+          <div className="d-flex align-items-center">
+            <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
+            {message}
           </div>
+          <button type="button" className="btn-close" onClick={() => setMessage('')}></button>
         </div>
       )}
 
-      {/* Modal de Relatórios */}
-      {showReportsModal && (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">📊 Relatórios de Alimentação</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowReportsModal(false)}
-                ></button>
+      {/* Stats Cards */}
+      <div className="row g-4 mb-5">
+         <div className="col-md-6">
+            <div className="card p-4 border-0 h-100 border-start border-success border-4 shadow-sm">
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Consumo Total Registrado</p>
+               <h3 className="fw-black text-dark mb-0">{totalCalories} kcal</h3>
+               <div className="small text-muted mt-2">Energia total consumida</div>
+            </div>
+         </div>
+         <div className="col-md-6">
+            <div className="card p-4 border-0 h-100 border-start border-primary border-4 shadow-sm">
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Refeições Realizadas</p>
+               <h3 className="fw-black text-dark mb-0">{meals.length} refeições</h3>
+               <div className="small text-muted mt-2">Frequência alimentar</div>
+            </div>
+         </div>
+      </div>
+
+      <div className="row g-5">
+        <div className="col-lg-4">
+          <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
+            <h2 className="h5 fw-bold text-dark mb-4">
+               <i className={`bi ${editingMeal ? 'bi-pencil-square' : 'bi-plus-circle-fill'} text-success me-2`}></i>
+               {editingMeal ? 'Editar Refeição' : 'Novo Registro'}
+            </h2>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Data</label>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" />
               </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Período</label>
-                  <select
-                    value={reportsPeriod}
-                    onChange={(e) => setReportsPeriod(e.target.value)}
-                    className="form-control"
-                  >
-                    <option value="week">Semanal</option>
-                    <option value="month">Mensal</option>
-                    <option value="year">Anual</option>
-                  </select>
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Tipo de Refeição</label>
+                <select value={mealType} onChange={(e) => setMealType(e.target.value)} className="form-select bg-light border-0 py-2 rounded-3">
+                  {mealTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Calorias (kcal)</label>
+                <input type="number" value={calories} onChange={(e) => setCalories(Number(e.target.value))} required className="form-control bg-light border-0 py-2 rounded-3" />
+              </div>
+              <div className="mb-4">
+                <label className="form-label small fw-bold text-secondary">O que você comeu?</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" rows={3} placeholder="Ex: Arroz, feijão, frango grelhado e salada..."></textarea>
+              </div>
+              <button type="submit" disabled={loading} className="btn btn-success w-100 py-2 fw-bold shadow-sm mb-2 text-white">
+                {loading ? <span className="spinner-border spinner-border-sm"></span> : (editingMeal ? 'Atualizar Refeição' : 'Registrar Refeição')}
+              </button>
+              {editingMeal && (
+                <button type="button" onClick={resetForm} className="btn btn-link w-100 text-secondary text-decoration-none small fw-bold">Cancelar</button>
+              )}
+            </form>
+          </div>
+        </div>
+
+        <div className="col-lg-8">
+          <div className="d-flex align-items-center justify-content-between mb-4">
+             <h2 className="h5 fw-bold text-dark mb-0">Diário Alimentar</h2>
+             <span className="badge bg-white text-dark shadow-sm px-3 py-2 rounded-3">{meals.length} itens</span>
+          </div>
+
+          <div className="list-group list-group-flush bg-transparent">
+            {meals.length > 0 ? (
+              meals.map(meal => (
+                <div key={meal.id} className="card border-0 p-3 mb-3 shadow-sm">
+                   <div className="d-flex align-items-start justify-content-between">
+                      <div className="d-flex align-items-center">
+                         <div className="bg-success-subtle text-success rounded-3 text-center p-2 me-4" style={{minWidth: '60px'}}>
+                            <div className="text-uppercase small fw-black" style={{fontSize: '10px'}}>
+                               {new Date(meal.date).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                            </div>
+                            <div className="h4 fw-black mb-0">{new Date(meal.date).getDate() + 1}</div>
+                         </div>
+                         <div>
+                            <div className="fw-bold text-dark mb-1">
+                               {meal.mealType}
+                               <span className="badge bg-light text-success ms-2 border border-success-subtle fw-bold" style={{fontSize: '10px'}}>{meal.calories} kcal</span>
+                            </div>
+                            <p className="text-secondary small mb-0 pe-4">{meal.description}</p>
+                         </div>
+                      </div>
+                      <div className="d-flex gap-2">
+                         <button onClick={() => handleEdit(meal)} className="btn btn-light btn-sm rounded-circle p-2 border-0 shadow-sm"><i className="bi bi-pencil-fill text-primary"></i></button>
+                         <button onClick={() => handleDelete(meal.id)} className="btn btn-light btn-sm rounded-circle p-2 border-0 shadow-sm"><i className="bi bi-trash-fill text-danger"></i></button>
+                      </div>
+                   </div>
                 </div>
-
-                {reports && (
-                  <div className="row">
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🍽️ Dia com Mais Refeições</h6>
-                          <p className="card-text fw-bold">
-                            {reports.dayWithMostMeals ? new Date(reports.dayWithMostMeals).toLocaleDateString('pt-BR') : 'Nenhum dado'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">📅 Dia com Menos Refeições</h6>
-                          <p className="card-text fw-bold">
-                            {reports.dayWithLeastMeals ? new Date(reports.dayWithLeastMeals).toLocaleDateString('pt-BR') : 'Nenhum dado'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🔥 Maior Consumo de Calorias</h6>
-                          <p className="card-text fw-bold">
-                            {reports.dayWithMostCalories ? `${reports.maxCalories} cal` : 'Nenhum dado'}
-                          </p>
-                          <small className="text-muted">
-                            {reports.dayWithMostCalories && `Dia: ${new Date(reports.dayWithMostCalories).toLocaleDateString('pt-BR')}`}
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">📊 Total de Refeições</h6>
-                          <p className="card-text fw-bold">{reports.totalMeals}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🥤 Dias com Refrigerante</h6>
-                          <p className="card-text fw-bold">{reports.sodaConsumptionDays.length} dias</p>
-                          {reports.sodaConsumptionDays.length > 0 && (
-                            <small className="text-muted">
-                              {reports.sodaConsumptionDays.map((day: string) => new Date(day).toLocaleDateString('pt-BR')).join(', ')}
-                            </small>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="card mb-3">
-                        <div className="card-body">
-                          <h6 className="card-title">🍺 Dias com Bebida Alcoólica</h6>
-                          <p className="card-text fw-bold">{reports.alcoholConsumptionDays.length} dias</p>
-                          {reports.alcoholConsumptionDays.length > 0 && (
-                            <small className="text-muted">
-                              {reports.alcoholConsumptionDays.map((day: string) => new Date(day).toLocaleDateString('pt-BR')).join(', ')}
-                            </small>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              ))
+            ) : (
+              <div className="card p-5 border-0 text-center shadow-sm">
+                 <i className="bi bi-egg-fried fs-1 text-muted mb-3"></i>
+                 <p className="text-secondary mb-0">Nenhuma refeição registrada ainda.</p>
               </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

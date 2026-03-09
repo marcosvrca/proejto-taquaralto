@@ -24,68 +24,88 @@ const Register = () => {
     setLoading(false);
   };
 
+  const isSuccess = message.includes('✅');
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">💪 Novo Cadastro</h1>
-        <p className="text-center text-gray-600 mb-8">Junte-se à comunidade</p>
+    <div className="min-h-screen bg-primary d-flex align-items-center justify-content-center p-3" style={{minHeight: '100vh', background: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)'}}>
+      <div className="card shadow-lg border-0 p-4 w-100" style={{maxWidth: '450px', borderRadius: '24px'}}>
+        <div className="text-center mb-5 mt-3">
+          <div className="bg-primary text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm" style={{width: '64px', height: '64px'}}>
+            <i className="bi bi-person-plus fs-2"></i>
+          </div>
+          <h1 className="h3 fw-black text-dark tracking-tight mb-1">Crie sua conta</h1>
+          <p className="text-secondary small">Comece hoje sua jornada de evolução</p>
+        </div>
 
         {message && (
-          <div className={`mb-4 p-4 rounded-lg border ${
-            message.includes('✅')
-              ? 'bg-green-100 text-green-800 border-green-300'
-              : 'bg-red-100 text-red-800 border-red-300'
-          }`}>
+          <div className={`alert ${isSuccess ? 'alert-success' : 'alert-danger'} rounded-4 py-3 px-4 small d-flex align-items-center mb-4`} role="alert">
+            <i className={`bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
             {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="px-md-2">
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">Nome</label>
-            <input
-              type="text"
-              placeholder="Seu nome"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500"
-            />
+            <label className="form-label fw-bold text-dark small mb-2">Seu nome</label>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-0"><i className="bi bi-person text-secondary"></i></span>
+              <input
+                type="text"
+                placeholder="Seu nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="form-control bg-light border-0 py-3 rounded-end-3 fs-6"
+                style={{fontSize: '15px'}}
+              />
+            </div>
           </div>
+
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">Email</label>
-            <input
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500"
-            />
+            <label className="form-label fw-bold text-dark small mb-2">Seu e-mail</label>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-0"><i className="bi bi-envelope text-secondary"></i></span>
+              <input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="form-control bg-light border-0 py-3 rounded-end-3 fs-6"
+                style={{fontSize: '15px'}}
+              />
+            </div>
           </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-2">Senha</label>
-            <input
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500"
-            />
+
+          <div className="mb-5">
+            <label className="form-label fw-bold text-dark small mb-2">Sua senha</label>
+            <div className="input-group">
+              <span className="input-group-text bg-light border-0"><i className="bi bi-lock text-secondary"></i></span>
+              <input
+                type="password"
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="form-control bg-light border-0 py-3 rounded-end-3"
+              />
+            </div>
           </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
+            className="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm mb-4"
           >
-            {loading ? 'Cadastrando...' : 'Cadastrar'}
+            {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : 'Cadastrar agora'}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 mt-6">
-          Já tem conta? <Link to="/login" className="text-green-600 hover:text-green-700 font-semibold">Faça login</Link>
-        </p>
+        <div className="text-center mt-2 mb-3">
+          <p className="text-secondary small">
+            Já tem uma conta? <Link to="/login" className="text-primary text-decoration-none fw-bold">Faça login</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

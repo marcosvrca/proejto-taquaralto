@@ -5,18 +5,20 @@ import { API_BASE_URL } from '../config';
 interface Workout {
   id: number;
   date: string;
+  time?: string;
   type: string;
   durationMinutes: number;
   intensity: 'Baixa' | 'Média' | 'Alta';
-  observations: string;
+  notes?: string;
 }
 
 const Workouts: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState(new Date().toTimeString().split(' ')[0]);
   const [type, setType] = useState('Musculação');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [intensity, setIntensity] = useState<'Baixa' | 'Média' | 'Alta'>('Média');
-  const [observations, setObservations] = useState('');
+  const [notes, setNotes] = useState('');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,9 +35,10 @@ const Workouts: React.FC = () => {
   const fetchWorkouts = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/workouts`, { headers });
-      setWorkouts(res.data);
+      setWorkouts(res.data.workouts || []);
     } catch (error) {
-      console.error('Erro ao buscar treinos');
+      console.error('Erro ao buscar treinos:', error);
+      setWorkouts([]);
     }
   };
 
@@ -49,12 +52,12 @@ const Workouts: React.FC = () => {
     try {
       if (editingWorkout) {
         await axios.put(`${API_BASE_URL}/api/workouts/${editingWorkout.id}`, {
-          date, type, durationMinutes, intensity, observations
+          date, time, type, durationMinutes, intensity, notes
         }, { headers });
         setMessage('✅ Treino atualizado!');
       } else {
         await axios.post(`${API_BASE_URL}/api/workouts`, {
-          date, type, durationMinutes, intensity, observations
+          date, time, type, durationMinutes, intensity, notes
         }, { headers });
         setMessage('✅ Treino registrado!');
       }
@@ -70,10 +73,11 @@ const Workouts: React.FC = () => {
   const handleEdit = (workout: Workout) => {
     setEditingWorkout(workout);
     setDate(workout.date);
+    setTime('12:00');
     setType(workout.type);
     setDurationMinutes(workout.durationMinutes);
     setIntensity(workout.intensity);
-    setObservations(workout.observations);
+    setNotes('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -91,10 +95,11 @@ const Workouts: React.FC = () => {
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
+    setTime(new Date().toTimeString().split(' ')[0]);
     setType('Musculação');
     setDurationMinutes(60);
     setIntensity('Média');
-    setObservations('');
+    setNotes('');
     setEditingWorkout(null);
   };
 
@@ -163,6 +168,10 @@ const Workouts: React.FC = () => {
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" />
               </div>
               <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Hora</label>
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" />
+              </div>
+              <div className="mb-3">
                 <label className="form-label small fw-bold text-secondary">Modalidade</label>
                 <select value={type} onChange={(e) => setType(e.target.value)} className="form-select bg-light border-0 py-2 rounded-3">
                   {workoutTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -184,7 +193,7 @@ const Workouts: React.FC = () => {
               </div>
               <div className="mb-4">
                 <label className="form-label small fw-bold text-secondary">Observações (opcional)</label>
-                <textarea value={observations} onChange={(e) => setObservations(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" rows={2} placeholder="Ex: Treino de pernas, foco em..."></textarea>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" rows={2} placeholder="Ex: Treino de pernas, foco em..."></textarea>
               </div>
               <button type="submit" disabled={loading} className="btn btn-danger w-100 py-2 fw-bold shadow-sm mb-2">
                 {loading ? <span className="spinner-border spinner-border-sm"></span> : (editingWorkout ? 'Atualizar Treino' : 'Registrar Treino')}
@@ -222,7 +231,7 @@ const Workouts: React.FC = () => {
                          </div>
                          <p className="text-secondary small mb-0">
                             <i className="bi bi-clock me-1"></i> {workout.durationMinutes} minutos
-                            {workout.observations && <span className="ms-2 opacity-75 d-none d-sm-inline">• {workout.observations.substring(0, 30)}...</span>}
+                            {workout.notes && <span className="ms-2 opacity-75 d-none d-sm-inline">• {workout.notes.substring(0, 30)}...</span>}
                          </p>
                       </div>
                    </div>

@@ -5,16 +5,22 @@ import { API_BASE_URL } from '../config';
 interface Meal {
   id: number;
   date: string;
+  time?: string;
   description: string;
   calories: number;
   mealType: string;
+  consumedSoda?: boolean;
+  consumedAlcohol?: boolean;
 }
 
 const Nutrition: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState(new Date().toTimeString().split(' ')[0]);
   const [description, setDescription] = useState('');
   const [calories, setCalories] = useState(0);
   const [mealType, setMealType] = useState('Almoço');
+  const [consumedSoda, setConsumedSoda] = useState(false);
+  const [consumedAlcohol, setConsumedAlcohol] = useState(false);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -28,9 +34,10 @@ const Nutrition: React.FC = () => {
   const fetchMeals = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/nutrition`, { headers });
-      setMeals(res.data);
+      setMeals(res.data.nutrition || []);
     } catch (error) {
-      console.error('Erro ao buscar refeições');
+      console.error('Erro ao buscar refeições:', error);
+      setMeals([]);
     }
   };
 
@@ -44,12 +51,12 @@ const Nutrition: React.FC = () => {
     try {
       if (editingMeal) {
         await axios.put(`${API_BASE_URL}/api/nutrition/${editingMeal.id}`, {
-          date, description, calories, mealType
+          date, time, mealType, calories, consumedSoda, consumedAlcohol, notes: description
         }, { headers });
         setMessage('✅ Refeição atualizada!');
       } else {
         await axios.post(`${API_BASE_URL}/api/nutrition`, {
-          date, description, calories, mealType
+          date, time, mealType, calories, consumedSoda, consumedAlcohol, notes: description
         }, { headers });
         setMessage('✅ Refeição registrada!');
       }
@@ -65,9 +72,12 @@ const Nutrition: React.FC = () => {
   const handleEdit = (meal: Meal) => {
     setEditingMeal(meal);
     setDate(meal.date);
+    setTime('12:00');
     setDescription(meal.description);
     setCalories(meal.calories);
     setMealType(meal.mealType);
+    setConsumedSoda(false);
+    setConsumedAlcohol(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -85,9 +95,12 @@ const Nutrition: React.FC = () => {
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
+    setTime(new Date().toTimeString().split(' ')[0]);
     setDescription('');
     setCalories(0);
     setMealType('Almoço');
+    setConsumedSoda(false);
+    setConsumedAlcohol(false);
     setEditingMeal(null);
   };
 
@@ -146,6 +159,10 @@ const Nutrition: React.FC = () => {
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" />
               </div>
               <div className="mb-3">
+                <label className="form-label small fw-bold text-secondary">Hora</label>
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" />
+              </div>
+              <div className="mb-3">
                 <label className="form-label small fw-bold text-secondary">Tipo de Refeição</label>
                 <select value={mealType} onChange={(e) => setMealType(e.target.value)} className="form-select bg-light border-0 py-2 rounded-3">
                   {mealTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -155,9 +172,37 @@ const Nutrition: React.FC = () => {
                 <label className="form-label small fw-bold text-secondary">Calorias (kcal)</label>
                 <input type="number" value={calories} onChange={(e) => setCalories(Number(e.target.value))} required className="form-control bg-light border-0 py-2 rounded-3" />
               </div>
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="form-label small fw-bold text-secondary">O que você comeu?</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" rows={3} placeholder="Ex: Arroz, feijão, frango grelhado e salada..."></textarea>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="form-control bg-light border-0 py-2 rounded-3" rows={2} placeholder="Ex: Arroz, feijão, frango grelhado e salada..."></textarea>
+              </div>
+              <div className="mb-3">
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="sodaCheck"
+                    checked={consumedSoda}
+                    onChange={(e) => setConsumedSoda(e.target.checked)}
+                  />
+                  <label className="form-check-label small text-secondary" htmlFor="sodaCheck">
+                    Continha refrigerante
+                  </label>
+                </div>
+              </div>
+              <div className="mb-4">
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="alcoholCheck"
+                    checked={consumedAlcohol}
+                    onChange={(e) => setConsumedAlcohol(e.target.checked)}
+                  />
+                  <label className="form-check-label small text-secondary" htmlFor="alcoholCheck">
+                    Continha álcool
+                  </label>
+                </div>
               </div>
               <button type="submit" disabled={loading} className="btn btn-success w-100 py-2 fw-bold shadow-sm mb-2 text-white">
                 {loading ? <span className="spinner-border spinner-border-sm"></span> : (editingMeal ? 'Atualizar Refeição' : 'Registrar Refeição')}
@@ -193,6 +238,12 @@ const Nutrition: React.FC = () => {
                                <span className="badge bg-light text-success ms-2 border border-success-subtle fw-bold" style={{fontSize: '10px'}}>{meal.calories} kcal</span>
                             </div>
                             <p className="text-secondary small mb-0 pe-4">{meal.description}</p>
+                            {(meal.consumedSoda || meal.consumedAlcohol) && (
+                              <div className="mt-2">
+                                {meal.consumedSoda && <span className="badge bg-warning me-2">🥤 Refrigerante</span>}
+                                {meal.consumedAlcohol && <span className="badge bg-danger">🍺 Álcool</span>}
+                              </div>
+                            )}
                          </div>
                       </div>
                       <div className="d-flex gap-2">

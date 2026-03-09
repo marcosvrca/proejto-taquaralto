@@ -561,6 +561,8 @@ const Nutrition: React.FC = () => {
           </div>
           )}
         </div>
+      </div>
+    </div>
   );
 };
 

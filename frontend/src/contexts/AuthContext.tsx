@@ -20,24 +20,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      // Decode token to get user info (simplified)
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser(payload);
+        setUser(JSON.parse(userData));
       } catch (error) {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
     }
   }, []);
 
   const login = (token: string, user: User) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

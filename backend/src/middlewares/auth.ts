@@ -24,3 +24,5 @@ const adminAuth = (req, res, next) => {
 };
 
 module.exports = { auth, adminAuth };
+
+export {};

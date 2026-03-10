@@ -23,6 +23,7 @@ interface FormData {
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<FormData>({ email: '', name: '', password: '' });
@@ -35,17 +36,22 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('UserManagement: Buscando usuários com token:', token?.substring(0, 20) + '...');
       const res = await axios.get(`${API_BASE_URL}/api/admin/users/list/all`, { headers });
+      console.log('UserManagement: Usuários carregados:', res.data);
       setUsers(res.data);
-    } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
-      setMessage('❌ Erro ao carregar usuários');
+    } catch (error: any) {
+      console.error('UserManagement: Erro ao carregar usuários:', error.response?.data || error.message);
+      setError('Erro ao carregar usuários: ' + (error.response?.data?.message || error.message));
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('UserManagement: useEffect chamado');
     fetchUsers();
   }, []);
 
@@ -142,6 +148,7 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="container py-5 mt-5">
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
           <h1 className="fw-black text-dark mb-1">
@@ -155,6 +162,18 @@ const UserManagement: React.FC = () => {
         </button>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4">
+          <div className="d-flex align-items-center">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            {error}
+          </div>
+          <button type="button" className="btn-close" onClick={() => setError('')}></button>
+        </div>
+      )}
+
+      {/* Message State */}
       {message && (
         <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
           <div className="d-flex align-items-center">
@@ -252,12 +271,15 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Tabela de Usuários */}
+      {/* Loading State */}
       {loading ? (
         <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
+          <div className="mb-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Carregando...</span>
+            </div>
           </div>
+          <p className="text-secondary">Carregando usuários...</p>
         </div>
       ) : users.length === 0 ? (
         <div className="alert alert-info rounded-4">

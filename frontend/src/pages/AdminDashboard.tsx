@@ -35,6 +35,7 @@ const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserMetrics[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [period, setPeriod] = useState('week');
   const [selectedUser, setSelectedUser] = useState<UserMetrics | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
@@ -46,10 +47,15 @@ const AdminDashboard: React.FC = () => {
   const fetchUsers = async (selectedPeriod: string) => {
     try {
       setLoading(true);
+      setError('');
+      console.log('Buscando usuários com token:', token?.substring(0, 20) + '...');
       const res = await axios.get(`${API_BASE_URL}/api/admin/users?period=${selectedPeriod}`, { headers });
-      setUsers(res.data.users);
-    } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      console.log('Resposta recebida:', res.data);
+      setUsers(res.data.users || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar usuários:', error.response?.data || error.message);
+      setError('Erro ao carregar usuários: ' + (error.response?.data?.message || error.message));
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -93,6 +99,16 @@ const AdminDashboard: React.FC = () => {
       <div className="container py-5 mt-5">
         <div className="alert alert-danger" role="alert">
           Acesso negado. Apenas administradores podem acessar esta página.
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-5 mt-5">
+        <div className="alert alert-danger" role="alert">
+          {error}
         </div>
       </div>
     );

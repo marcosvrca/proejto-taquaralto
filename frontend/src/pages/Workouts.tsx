@@ -23,6 +23,7 @@ const Workouts: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
+  const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -135,26 +136,46 @@ const Workouts: React.FC = () => {
          <div className="col-md-4">
             <div className="card p-4 border-0 h-100 border-start border-danger border-4">
                <p className="text-uppercase small fw-bold text-secondary mb-1">Total de Treinos</p>
-               <h3 className="fw-black text-dark mb-0">{workoutCount} sessões</h3>
-               <div className="small text-muted mt-2">Histórico acumulado</div>
+               <h3 className="fw-black text-dark mb-0">{workoutCount} sessoes</h3>
+               <div className="small text-muted mt-2">Historico acumulado</div>
             </div>
          </div>
          <div className="col-md-4">
             <div className="card p-4 border-0 h-100 border-start border-primary border-4">
                <p className="text-uppercase small fw-bold text-secondary mb-1">Tempo em Atividade</p>
                <h3 className="fw-black text-dark mb-0">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</h3>
-               <div className="small text-muted mt-2">Dedicados à sua saúde</div>
+               <div className="small text-muted mt-2">Dedicados a sua saude</div>
             </div>
          </div>
          <div className="col-md-4">
             <div className="card p-4 border-0 h-100 border-start border-warning border-4">
                <p className="text-uppercase small fw-bold text-secondary mb-1">Alta Intensidade</p>
                <h3 className="fw-black text-dark mb-0">{highIntensityCount} treinos</h3>
-               <div className="small text-muted mt-2">Esforço máximo registrado</div>
+               <div className="small text-muted mt-2">Esforco maximo registrado</div>
             </div>
          </div>
       </div>
 
+      <ul className="nav nav-tabs mb-4 border-0 gap-2">
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'diary' ? 'bg-danger text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('diary')}
+              >
+                <i className="bi bi-calendar-check me-2"></i>Diario de Treinos
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'reports' ? 'bg-danger text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('reports')}
+              >
+                <i className="bi bi-graph-up me-2"></i>Relatorios
+              </button>
+            </li>
+          </ul>
+
+      {activeTab === 'diary' && (
       <div className="row g-5">
         <div className="col-lg-4">
           <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
@@ -250,6 +271,82 @@ const Workouts: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
+
+      {activeTab === 'reports' && (
+      <div>
+        <h2 className="h5 fw-bold text-dark mb-4">
+          <i className="bi bi-graph-up text-danger me-2"></i>Relatorio Detalhado
+        </h2>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100">
+              <p className="text-muted small mb-2"><i className="bi bi-fire me-2"></i>Total de Treinos</p>
+              <h3 className="fw-black text-dark mb-0">{workoutCount}</h3>
+              <small className="text-muted mt-2">Sessoes completadas</small>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100">
+              <p className="text-muted small mb-2"><i className="bi bi-bar-chart me-2"></i>Media de Tempo</p>
+              <h3 className="fw-black text-dark mb-0">{workoutCount > 0 ? Math.round(totalMinutes / workoutCount) : 0}min</h3>
+              <small className="text-muted mt-2">Por sessao</small>
+            </div>
+          </div>
+        </div>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100 border-start border-primary border-4">
+              <p className="text-muted small mb-2 fw-bold">💪 Treinos Leves</p>
+              <p className="text-dark fw-bold mb-1">{workouts.filter(w => w.intensity === 'Baixa').length} treinos</p>
+              <small className="text-muted d-block mb-2">
+                <i className="bi bi-activity me-1"></i>Intensidade baixa
+              </small>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100 border-start border-warning border-4">
+              <p className="text-muted small mb-2 fw-bold">⚡ Treinos Moderados</p>
+              <p className="text-dark fw-bold mb-1">{workouts.filter(w => w.intensity === 'Média').length} treinos</p>
+              <small className="text-muted d-block mb-2">
+                <i className="bi bi-activity me-1"></i>Intensidade media
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100 border-start border-danger border-4">
+              <p className="text-muted small mb-2 fw-bold">🔥 Treinos Intensos</p>
+              <p className="text-dark fw-bold mb-1">{highIntensityCount} treinos</p>
+              <small className="text-muted d-block mb-2">
+                <i className="bi bi-activity me-1"></i>Intensidade alta
+              </small>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100">
+              <p className="text-muted small mb-2"><i className="bi bi-clock me-2"></i>Tempo Total</p>
+              <h3 className="fw-black text-dark mb-0">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</h3>
+              <small className="text-muted mt-2">De atividade</small>
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-4 border-0 shadow-sm">
+          <p className="text-secondary mb-0">
+            <i className="bi bi-info-circle me-2"></i>
+            Mantenha consistencia nos seus treinos. Varia a intensidade para melhores resultados.
+          </p>
+        </div>
+      </div>
+      )}
     </div>
   );
 };

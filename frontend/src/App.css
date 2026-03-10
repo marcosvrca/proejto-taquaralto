@@ -9,3 +9,132 @@
 main {
   @apply min-h-screen pt-20;
 }
+
+/* Tema Escuro */
+.dark-theme {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .card {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .card-header {
+  background-color: #2a2a2a !important;
+  border-bottom-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .form-control {
+  background-color: #2a2a2a !important;
+  border-color: #555 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .form-control:focus {
+  background-color: #2a2a2a !important;
+  border-color: #0dcaf0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25) !important;
+}
+
+.dark-theme .btn-outline-secondary {
+  color: #ffffff !important;
+  border-color: #6c757d !important;
+}
+
+.dark-theme .btn-outline-secondary:hover {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.dark-theme .text-secondary {
+  color: #adb5bd !important;
+}
+
+.dark-theme .text-muted {
+  color: #6c757d !important;
+}
+
+.dark-theme .bg-light {
+  background-color: #2a2a2a !important;
+}
+
+.dark-theme .bg-white {
+  background-color: #1e1e1e !important;
+}
+
+.dark-theme .border {
+  border-color: #333 !important;
+}
+
+.dark-theme .table {
+  color: #ffffff !important;
+}
+
+.dark-theme .table thead th {
+  background-color: #2a2a2a !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .table tbody td {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .alert {
+  background-color: #2a2a2a !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .alert-success {
+  background-color: rgba(25, 135, 84, 0.1) !important;
+  border-color: #198754 !important;
+  color: #d1e7dd !important;
+}
+
+.dark-theme .alert-danger {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  border-color: #dc3545 !important;
+  color: #f5c2c7 !important;
+}
+
+.dark-theme .dropdown-menu {
+  background-color: #2a2a2a !important;
+  border-color: #333 !important;
+}
+
+.dark-theme .dropdown-item {
+  color: #ffffff !important;
+}
+
+.dark-theme .dropdown-item:hover {
+  background-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .modal-content {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .modal-header {
+  border-bottom-color: #333 !important;
+}
+
+.dark-theme .modal-footer {
+  border-top-color: #333 !important;
+}
+
+/* Tema Claro (padrão) */
+.light-theme {
+  background-color: #ffffff !important;
+  color: #212529 !important;
+}

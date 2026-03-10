@@ -6,11 +6,15 @@ const { User } = require('./entities/User');
 const { SleepRecord } = require('./entities/SleepRecord');
 const { Workout } = require('./entities/Workout');
 const { Nutrition } = require('./entities/Nutrition');
+const { Pain } = require('./entities/Pain');
+const { Goal } = require('./entities/Goal');
 const AuthController = require('./controllers/AuthController');
 const { auth, adminAuth } = require('./middlewares/auth');
 const SleepController = require('./controllers/SleepController');
 const WorkoutController = require('./controllers/WorkoutController');
 const NutritionController = require('./controllers/NutritionController');
+const PainController = require('./controllers/PainController');
+const GoalController = require('./controllers/GoalController');
 const { AdminController, UserManagementController } = require('./controllers/AdminController');
 const bcrypt = require('bcryptjs');
 
@@ -21,7 +25,7 @@ app.use(express.json());
 const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [User, SleepRecord, Workout, Nutrition],
+  entities: [User, SleepRecord, Workout, Nutrition, Pain, Goal],
   synchronize: true, // Para desenvolvimento; em produção, usar migrations
 });
 
@@ -69,6 +73,18 @@ app.get('/api/nutrition', auth, NutritionController.getNutrition);
 app.get('/api/nutrition/reports', auth, NutritionController.getNutritionReports);
 app.put('/api/nutrition/:id', auth, NutritionController.updateNutrition);
 app.delete('/api/nutrition/:id', auth, NutritionController.deleteNutrition);
+
+// Pain routes
+app.post('/api/pains', auth, PainController.createPain);
+app.get('/api/pains', auth, PainController.getPains);
+app.put('/api/pains/:id', auth, PainController.updatePain);
+app.delete('/api/pains/:id', auth, PainController.deletePain);
+
+// Goal routes
+app.post('/api/goals', auth, GoalController.createGoal);
+app.get('/api/goals', auth, GoalController.getGoals);
+app.put('/api/goals/:id', auth, GoalController.updateGoal);
+app.delete('/api/goals/:id', auth, GoalController.deleteGoal);
 
 // Exemplo de rota protegida
 app.get('/api/protected', auth, (req, res) => {

@@ -6,7 +6,8 @@ interface Meal {
   id: number;
   date: string;
   time?: string;
-  description: string;
+  description?: string;
+  notes?: string;
   calories: number;
   mealType: string;
   consumedSoda?: boolean;
@@ -21,7 +22,7 @@ const Nutrition: React.FC = () => {
   const [time, setTime] = useState(new Date().toTimeString().split(' ')[0]);
   const [description, setDescription] = useState('');
   const [calories, setCalories] = useState(0);
-  const [mealType, setMealType] = useState('Almoço');
+  const [mealType, setMealType] = useState('almoco');
   const [consumedSoda, setConsumedSoda] = useState(false);
   const [consumedAlcohol, setConsumedAlcohol] = useState(false);
   const [consumedWater, setConsumedWater] = useState(false);
@@ -36,7 +37,13 @@ const Nutrition: React.FC = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
 
-  const mealTypes = ['Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar', 'Ceia', 'Pré-Treino', 'Pós-Treino', 'Outro'];
+  const mealTypeOptions = [
+    { value: 'cafe_manha', label: 'Cafe da Manha' },
+    { value: 'almoco', label: 'Almoco' },
+    { value: 'lanche_tarde', label: 'Lanche da Tarde' },
+    { value: 'jantar', label: 'Jantar' },
+    { value: 'outro_horario', label: 'Outro Horario' }
+  ];
 
   const fetchMeals = async () => {
     try {
@@ -80,7 +87,7 @@ const Nutrition: React.FC = () => {
     setEditingMeal(meal);
     setDate(meal.date);
     setTime('12:00');
-    setDescription(meal.description);
+    setDescription(meal.notes || '');
     setCalories(meal.calories);
     setMealType(meal.mealType);
     setConsumedSoda(meal.consumedSoda || false);
@@ -108,7 +115,7 @@ const Nutrition: React.FC = () => {
     setTime(new Date().toTimeString().split(' ')[0]);
     setDescription('');
     setCalories(0);
-    setMealType('Almoço');
+    setMealType('almoco');
     setConsumedSoda(false);
     setConsumedAlcohol(false);
     setConsumedWater(false);
@@ -262,9 +269,9 @@ const Nutrition: React.FC = () => {
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="form-control bg-light border-0 py-2 rounded-3" />
               </div>
               <div className="mb-3">
-                <label className="form-label small fw-bold text-secondary">Tipo de Refeição</label>
+                <label className="form-label small fw-bold text-secondary">Tipo de Refeicao</label>
                 <select value={mealType} onChange={(e) => setMealType(e.target.value)} className="form-select bg-light border-0 py-2 rounded-3">
-                  {mealTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  {mealTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
               <div className="mb-3">
@@ -403,7 +410,7 @@ const Nutrition: React.FC = () => {
                             </div>
                             <div className="mb-2">
                               <p className="text-secondary small mb-1"><strong>Refeição:</strong></p>
-                              <p className="text-dark small mb-2 ps-2 border-start border-success-subtle">{meal.description}</p>
+                              <p className="text-dark small mb-2 ps-2 border-start border-success-subtle">{meal.notes || 'Sem detalhes adicionais'}</p>
                             </div>
                             <div className="mt-2">
                               {renderBeverageBadges(meal).length > 0 && renderBeverageBadges(meal)}

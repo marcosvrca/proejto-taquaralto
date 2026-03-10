@@ -19,6 +19,7 @@ const Pains: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [editingRecord, setEditingRecord] = useState<PainRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -156,8 +157,25 @@ const Pains: React.FC = () => {
         </div>
 
         <div className="col-lg-8">
+          <div className="d-flex align-items-center gap-3 mb-4">
+            <button
+              onClick={() => setActiveTab('diary')}
+              className={`btn fw-bold ${activeTab === 'diary' ? 'btn-dark text-white' : 'btn-outline-secondary'}`}
+            >
+              <i className="bi bi-calendar-check me-2"></i>Historico
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`btn fw-bold ${activeTab === 'reports' ? 'btn-dark text-white' : 'btn-outline-secondary'}`}
+            >
+              <i className="bi bi-bar-chart me-2"></i>Relatorios
+            </button>
+          </div>
+
+          {activeTab === 'diary' && (
+          <>
           <div className="d-flex align-items-center justify-content-between mb-4">
-             <h2 className="h5 fw-bold text-dark mb-0">Histórico de Sinais</h2>
+             <h2 className="h5 fw-bold text-dark mb-0">Historico de Sinais</h2>
              <span className="badge bg-white text-dark shadow-sm px-3 py-2 rounded-3">{records.length} registros</span>
           </div>
 
@@ -197,6 +215,82 @@ const Pains: React.FC = () => {
               </div>
             )}
           </div>
+          </>
+          )}
+
+          {activeTab === 'reports' && (
+          <div>
+            <h2 className="h5 fw-bold text-dark mb-4">Relatorios de Dores</h2>
+            
+            <div className="row g-3 mb-4">
+              <div className="col-md-6">
+                <div className="card border-0 p-4 shadow-sm bg-light">
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <p className="text-secondary small mb-1">Total de Registros</p>
+                      <h3 className="fw-bold text-dark mb-0">{records.length}</h3>
+                    </div>
+                    <i className="bi bi-clipboard2-pulse fs-3 text-warning"></i>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="card border-0 p-4 shadow-sm bg-light">
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <p className="text-secondary small mb-1">Intensidade Media</p>
+                      <h3 className="fw-bold text-dark mb-0">{records.length > 0 ? (records.reduce((sum, r) => sum + r.intensity, 0) / records.length).toFixed(1) : '0'}/10</h3>
+                    </div>
+                    <i className="bi bi-heart-pulse fs-3 text-danger"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h4 className="h6 fw-bold text-dark mb-3">Dores por Local</h4>
+            <div className="card border-0 p-4 shadow-sm mb-4">
+              {Object.entries(
+                records.reduce((acc, record) => {
+                  acc[record.location] = (acc[record.location] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>)
+              ).sort((a, b) => b[1] - a[1]).map(([location, count]) => (
+                <div key={location} className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                  <span className="text-dark fw-bold">{location}</span>
+                  <span className="badge bg-warning text-dark fw-bold px-3 py-2">{count} {count === 1 ? 'vez' : 'vezes'}</span>
+                </div>
+              ))}
+              {records.length === 0 && (
+                <p className="text-secondary text-center mb-0">Nenhum registro de dor ainda.</p>
+              )}
+            </div>
+
+            <h4 className="h6 fw-bold text-dark mb-3">Locais Mais Problematicos</h4>
+            <div className="card border-0 p-4 shadow-sm bg-danger-subtle border-2 border-danger">
+              {Object.entries(
+                records.reduce((acc, record) => {
+                  acc[record.location] = (acc[record.location] || []).concat(record.intensity);
+                  return acc;
+                }, {} as Record<string, number[]>)
+              ).map(([location, intensities]) => ({
+                location,
+                avgIntensity: intensities.reduce((a, b) => a + b, 0) / intensities.length,
+                count: intensities.length
+              })).sort((a, b) => b.avgIntensity - a.avgIntensity).slice(0, 3).map((item, idx) => (
+                <div key={item.location} className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                  <div>
+                    <p className="text-dark fw-bold mb-1">{idx + 1}. {item.location}</p>
+                    <small className="text-secondary">{item.count} registros com intensidade media {item.avgIntensity.toFixed(1)}</small>
+                  </div>
+                  <span className="badge bg-danger text-white fw-bold px-3 py-2">{item.avgIntensity.toFixed(1)}</span>
+                </div>
+              ))}
+              {records.length === 0 && (
+                <p className="text-secondary text-center mb-0">Nenhum registro para analisar.</p>
+              )}
+            </div>
+          </div>
+          )}
         </div>
       </div>
     </div>

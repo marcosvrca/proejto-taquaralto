@@ -23,6 +23,7 @@ const Sleep: React.FC = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [editingRecord, setEditingRecord] = useState<SleepRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -136,9 +137,9 @@ const Sleep: React.FC = () => {
       <div className="row g-4 mb-5">
          <div className="col-md-3">
             <div className="card p-4 border-0 h-100">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Média Diária</p>
+               <p className="text-uppercase small fw-bold text-secondary mb-1">Media Diaria</p>
                <h3 className="fw-black text-primary mb-0">{formatDuration(Math.round(dailyAverage))}</h3>
-               <div className="small text-muted mt-2">No período selecionado</div>
+               <div className="small text-muted mt-2">No periodo selecionado</div>
             </div>
          </div>
          <div className="col-md-3">
@@ -164,6 +165,26 @@ const Sleep: React.FC = () => {
          </div>
       </div>
 
+      <ul className="nav nav-tabs mb-4 border-0 gap-2">
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'diary' ? 'bg-primary text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('diary')}
+              >
+                <i className="bi bi-calendar-check me-2"></i>Diario de Sono
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'reports' ? 'bg-primary text-white' : 'bg-light text-secondary'}`}
+                onClick={() => setActiveTab('reports')}
+              >
+                <i className="bi bi-graph-up me-2"></i>Relatorios
+              </button>
+            </li>
+          </ul>
+
+      {activeTab === 'diary' && (
       <div className="row g-5">
         <div className="col-lg-4">
           <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
@@ -242,6 +263,62 @@ const Sleep: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
+
+      {activeTab === 'reports' && (
+      <div>
+        <h2 className="h5 fw-bold text-dark mb-4">
+          <i className="bi bi-graph-up text-primary me-2"></i>Relatorio Detalhado
+        </h2>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100">
+              <p className="text-muted small mb-2"><i className="bi bi-moon-stars me-2"></i>Melhor Noite</p>
+              <h3 className="fw-black text-dark mb-0">{bestDay ? formatDuration(bestDay.durationMinutes) : '--'}</h3>
+              <small className="text-muted mt-2">{bestDay?.date || 'Nenhum registro'}</small>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100">
+              <p className="text-muted small mb-2"><i className="bi bi-bar-chart me-2"></i>Media de Sono</p>
+              <h3 className="fw-black text-dark mb-0">{formatDuration(Math.round(dailyAverage))}</h3>
+              <small className="text-muted mt-2">Horas de sono por noite</small>
+            </div>
+          </div>
+        </div>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100 border-start border-success border-4">
+              <p className="text-muted small mb-2 fw-bold">🏆 Melhor Dia</p>
+              <p className="text-dark fw-bold mb-1">{bestDay ? new Date(bestDay.date).toLocaleDateString('pt-BR') : 'N/A'}</p>
+              <small className="text-muted d-block mb-2">
+                <i className="bi bi-moon-stars me-1"></i>{bestDay ? formatDuration(bestDay.durationMinutes) : '--'}
+              </small>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card p-4 border-0 shadow-sm h-100 border-start border-danger border-4">
+              <p className="text-muted small mb-2 fw-bold">⚠️ Pior Dia</p>
+              <p className="text-dark fw-bold mb-1">{worstDay ? new Date(worstDay.date).toLocaleDateString('pt-BR') : 'N/A'}</p>
+              <small className="text-muted d-block mb-2">
+                <i className="bi bi-moon-stars me-1"></i>{worstDay ? formatDuration(worstDay.durationMinutes) : '--'}
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-4 border-0 shadow-sm">
+          <p className="text-secondary mb-0">
+            <i className="bi bi-info-circle me-2"></i>
+            Total de {records.length} noites registradas. Qualidade de sono otima quando voce dorme entre 7 e 9 horas.
+          </p>
+        </div>
+      </div>
+      )}
     </div>
   );
 };

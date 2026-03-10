@@ -137,8 +137,27 @@ const Goals: React.FC = () => {
                       <span className="visually-hidden">Loading...</span>
                    </div>
                  ) : (
-                   <div className="d-flex align-items-center justify-content-center bg-info text-white rounded-circle" style={{width: '40px', height: '40px'}}>
-                     <span className="fw-bold small">{progressPercent}%</span>
+                   <div className="progress-circle" style={{
+                     width: '40px',
+                     height: '40px',
+                     borderRadius: '50%',
+                     background: `conic-gradient(#0dcaf0 ${progressPercent}%, #e9ecef ${progressPercent}%)`,
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     position: 'relative'
+                   }}>
+                     <div style={{
+                       width: '32px',
+                       height: '32px',
+                       borderRadius: '50%',
+                       background: 'white',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center'
+                     }}>
+                       <span className="fw-bold small text-info" style={{fontSize: '10px'}}>{progressPercent}%</span>
+                     </div>
                    </div>
                  )}
               </div>

@@ -16,7 +16,7 @@ const Header: React.FC = () => {
       <div className="container">
         <Link className="navbar-brand d-flex align-items-center fw-bold text-primary" to="/">
           <i className="bi bi-activity me-2"></i>
-          <span>VitalTracker</span>
+          <span>Taquaralto Futsal</span>
         </Link>
         <button className="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span className="navbar-toggler-icon"></span>

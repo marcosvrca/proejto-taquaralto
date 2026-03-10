@@ -19,6 +19,12 @@ const { AdminController, UserManagementController } = require('./controllers/Adm
 const bcrypt = require('bcryptjs');
 
 const app = express();
+
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined.');
+  process.exit(1);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -26,7 +32,7 @@ const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   entities: [User, SleepRecord, Workout, Nutrition, Pain, Goal],
-  synchronize: true, // Para desenvolvimento; em produção, usar migrations
+  synchronize: process.env.NODE_ENV === 'development', // Somente em desenvolvimento; em produção, usar migrations
 });
 
 AppDataSource.initialize()
@@ -36,17 +42,18 @@ AppDataSource.initialize()
 
     // Seed admin user
     const userRepository = AppDataSource.getRepository(User);
-    const adminExists = await userRepository.findOne({ where: { email: 'admin@example.com' } });
+    const adminEmail = 'admin@taquaralto.com';
+    const adminExists = await userRepository.findOne({ where: { email: adminEmail } });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const hashedPassword = await bcrypt.hash('@2026taquaraltofutsal', 10);
       const admin = userRepository.create({
-        email: 'admin@example.com',
+        email: adminEmail,
         password: hashedPassword,
         name: 'Admin',
         isAdmin: true,
       });
       await userRepository.save(admin);
-      console.log('Admin user created: admin@example.com / admin123');
+      console.log(`Admin user created: ${adminEmail}`);
     }
   })
   .catch((error) => console.log(error));

@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config';
 
 const Login = () => {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -89,10 +89,6 @@ const Login = () => {
           <p className="text-secondary small">
             Não tem uma conta? <Link to="/register" className="text-primary text-decoration-none fw-bold">Criar conta grátis</Link>
           </p>
-          <div className="p-2 bg-light rounded-3 mt-4 small">
-            <span className="fw-bold text-dark d-block mb-1">Modo Demo:</span>
-            <span className="text-secondary">admin@example.com / admin123</span>
-          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,11 @@ interface User {
   email: string;
   name: string;
   isAdmin: boolean;
+  canAccessSleep?: boolean;
+  canAccessWorkouts?: boolean;
+  canAccessNutrition?: boolean;
+  canAccessHealth?: boolean;
+  canAccessGoals?: boolean;
 }
 
 interface AuthContextType {

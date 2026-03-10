@@ -48,7 +48,20 @@ class AuthController {
 
       const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-      res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          name: user.name, 
+          isAdmin: user.isAdmin,
+          canAccessSleep: user.canAccessSleep,
+          canAccessWorkouts: user.canAccessWorkouts,
+          canAccessNutrition: user.canAccessNutrition,
+          canAccessHealth: user.canAccessHealth,
+          canAccessGoals: user.canAccessGoals
+        } 
+      });
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
     }

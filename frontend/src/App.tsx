@@ -27,14 +27,14 @@ const AppRoutes: React.FC = () => {
           <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-          <Route path="/sleep" element={<ProtectedRoute><Sleep /></ProtectedRoute>} />
-          <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
-          <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
-          <Route path="/pains" element={<ProtectedRoute><Pains /></ProtectedRoute>} />
-          <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
+          <Route path="/sleep" element={<ProtectedRoute requiredPermission="sleep"><Sleep /></ProtectedRoute>} />
+          <Route path="/workouts" element={<ProtectedRoute requiredPermission="workouts"><Workouts /></ProtectedRoute>} />
+          <Route path="/nutrition" element={<ProtectedRoute requiredPermission="nutrition"><Nutrition /></ProtectedRoute>} />
+          <Route path="/pains" element={<ProtectedRoute requiredPermission="health"><Pains /></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute requiredPermission="goals"><Goals /></ProtectedRoute>} />
         </Routes>
       </main>
     </>

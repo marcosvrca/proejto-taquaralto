@@ -133,12 +133,18 @@ const Home: React.FC = () => {
   }, []);
 
   const menus = [
-    { title: 'Sono & Repouso', description: 'Otimize sua recuperação diária', icon: 'bi-moon-stars', color: 'primary', link: '/sleep' },
-    { title: 'Treinos', description: 'Monitore sua performance física', icon: 'bi-fire', color: 'danger', link: '/workouts' },
-    { title: 'Nutrição', description: 'Mantenha o equilíbrio nutricional', icon: 'bi-apple', color: 'success', link: '/nutrition' },
-    { title: 'Saúde & Dores', description: 'Previna lesões corporais', icon: 'bi-heart-pulse', color: 'warning', link: '/pains' },
-    { title: 'Metas', description: 'Acompanhe seus objetivos', icon: 'bi-trophy', color: 'info', link: '/goals' },
+    { title: 'Sono & Repouso', description: 'Otimize sua recuperação diária', icon: 'bi-moon-stars', color: 'primary', link: '/sleep', permission: 'canAccessSleep' },
+    { title: 'Treinos', description: 'Monitore sua performance física', icon: 'bi-fire', color: 'danger', link: '/workouts', permission: 'canAccessWorkouts' },
+    { title: 'Nutrição', description: 'Mantenha o equilíbrio nutricional', icon: 'bi-apple', color: 'success', link: '/nutrition', permission: 'canAccessNutrition' },
+    { title: 'Saúde & Dores', description: 'Previna lesões corporais', icon: 'bi-heart-pulse', color: 'warning', link: '/pains', permission: 'canAccessHealth' },
+    { title: 'Metas', description: 'Acompanhe seus objetivos', icon: 'bi-trophy', color: 'info', link: '/goals', permission: 'canAccessGoals' },
   ];
+
+  // Filtrar os menus baseado nas permissões do usuário
+  const allowedMenus = menus.filter(menu => {
+    const permissionKey = menu.permission as keyof typeof user;
+    return user?.[permissionKey] !== false;
+  });
 
   return (
     <div className="container py-5 mt-5">
@@ -234,7 +240,7 @@ const Home: React.FC = () => {
       </div>
 
       <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {menus.map((menu, idx) => (
+        {allowedMenus.map((menu, idx) => (
           <div className="col" key={idx}>
             <Link to={menu.link} className="text-decoration-none">
               <div className="card h-100 p-4 border-0">

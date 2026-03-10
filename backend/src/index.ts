@@ -11,7 +11,7 @@ const { auth, adminAuth } = require('./middlewares/auth');
 const SleepController = require('./controllers/SleepController');
 const WorkoutController = require('./controllers/WorkoutController');
 const NutritionController = require('./controllers/NutritionController');
-const AdminController = require('./controllers/AdminController');
+const { AdminController, UserManagementController } = require('./controllers/AdminController');
 const bcrypt = require('bcryptjs');
 
 const app = express();
@@ -81,8 +81,13 @@ app.get('/api/admin', auth, adminAuth, (req, res) => {
 });
 
 // Admin routes
+app.get('/api/admin/users/list/all', auth, adminAuth, UserManagementController.getAllUsers);
 app.get('/api/admin/users', auth, adminAuth, AdminController.getAllUsersWithMetrics);
 app.get('/api/admin/users/:userId', auth, adminAuth, AdminController.getUserDetailedMetrics);
+app.post('/api/admin/users', auth, adminAuth, UserManagementController.createUser);
+app.put('/api/admin/users/:id/permissions', auth, adminAuth, UserManagementController.updateUserPermissions);
+app.put('/api/admin/users/:id', auth, adminAuth, UserManagementController.updateUser);
+app.delete('/api/admin/users/:id', auth, adminAuth, UserManagementController.deleteUser);
 
 app.get('/', (req, res) => {
   res.send('Hello World!');

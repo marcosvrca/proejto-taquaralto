@@ -337,4 +337,136 @@ function getRank(score: number): string {
   return '🌱 Aprendiz';
 }
 
-module.exports = AdminController;
+// Métodos de gerenciamento de usuários
+class UserManagementController {
+  static async getAllUsers(req, res) {
+    try {
+      const userRepository = req.app.locals.dataSource.getRepository(User);
+      const users = await userRepository.find({
+        where: { isAdmin: false },
+        select: { id: true, email: true, name: true, isAdmin: true, createdAt: true, canAccessSleep: true, canAccessWorkouts: true, canAccessNutrition: true, canAccessHealth: true, canAccessGoals: true },
+        order: { createdAt: 'DESC' },
+      });
+      res.json(users);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async createUser(req, res) {
+    const { email, password, name } = req.body;
+    
+    try {
+      // @ts-ignore
+      const bcrypt = require('bcryptjs');
+      const userRepository = req.app.locals.dataSource.getRepository(User);
+
+      const existingUser = await userRepository.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email já cadastrado' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = userRepository.create({
+        email,
+        password: hashedPassword,
+        name,
+        isAdmin: false,
+        canAccessSleep: true,
+        canAccessWorkouts: true,
+        canAccessNutrition: true,
+        canAccessHealth: true,
+        canAccessGoals: true,
+      });
+
+      await userRepository.save(user);
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json({ message: 'Usuário criado com sucesso', user: userWithoutPassword });
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async updateUser(req, res) {
+    const { id } = req.params;
+    const { email, name } = req.body;
+
+    try {
+      const userRepository = req.app.locals.dataSource.getRepository(User);
+      const user = await userRepository.findOne({ where: { id: parseInt(id) } });
+
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      if (email && email !== user.email) {
+        const existingUser = await userRepository.findOne({ where: { email } });
+        if (existingUser) {
+          return res.status(400).json({ message: 'Email já cadastrado' });
+        }
+        user.email = email;
+      }
+
+      if (name) user.name = name;
+
+      await userRepository.save(user);
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ message: 'Usuário atualizado com sucesso', user: userWithoutPassword });
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async deleteUser(req, res) {
+    const { id } = req.params;
+
+    try {
+      const userRepository = req.app.locals.dataSource.getRepository(User);
+      const user = await userRepository.findOne({ where: { id: parseInt(id) } });
+
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      await userRepository.remove(user);
+      res.json({ message: 'Usuário deletado com sucesso' });
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+
+  static async updateUserPermissions(req, res) {
+    const { id } = req.params;
+    const { canAccessSleep, canAccessWorkouts, canAccessNutrition, canAccessHealth, canAccessGoals } = req.body;
+
+    try {
+      const userRepository = req.app.locals.dataSource.getRepository(User);
+      const user = await userRepository.findOne({ where: { id: parseInt(id) } });
+
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      if (canAccessSleep !== undefined) user.canAccessSleep = canAccessSleep;
+      if (canAccessWorkouts !== undefined) user.canAccessWorkouts = canAccessWorkouts;
+      if (canAccessNutrition !== undefined) user.canAccessNutrition = canAccessNutrition;
+      if (canAccessHealth !== undefined) user.canAccessHealth = canAccessHealth;
+      if (canAccessGoals !== undefined) user.canAccessGoals = canAccessGoals;
+
+      await userRepository.save(user);
+      
+      res.json({ message: 'Permissões atualizadas com sucesso', user });
+    } catch (error) {
+      console.error('Erro ao atualizar permissões:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+}
+
+module.exports = { AdminController, UserManagementController };

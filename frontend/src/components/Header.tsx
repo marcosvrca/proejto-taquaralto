@@ -38,6 +38,7 @@ const Header: React.FC = () => {
                   {user.isAdmin && <>
                     <li><hr className="dropdown-divider" /></li>
                     <li><Link className="dropdown-item rounded-2 text-primary fw-bold" to="/admin-dashboard"><i className="bi bi-shield-lock me-2"></i>Painel Admin</Link></li>
+                    <li><Link className="dropdown-item rounded-2 text-primary" to="/admin/users"><i className="bi bi-people me-2"></i>Gerenciar Usuários</Link></li>
                   </>}
                   <li><hr className="dropdown-divider" /></li>
                   <li><button onClick={handleLogout} className="dropdown-item rounded-2 text-danger"><i className="bi bi-box-arrow-right me-2"></i>Sair</button></li>

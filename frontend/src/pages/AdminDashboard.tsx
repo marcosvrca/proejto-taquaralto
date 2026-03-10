@@ -88,11 +88,14 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('AdminDashboard useEffect - user:', user);
     if (!user?.isAdmin) {
+      console.log('Usuário não é admin ou não foi carregado');
       return;
     }
+    console.log('Chamando fetchUsers');
     fetchUsers(period);
-  }, []);
+  }, [user?.isAdmin, period]);
 
   if (!user?.isAdmin) {
     return (
@@ -153,12 +156,18 @@ const AdminDashboard: React.FC = () => {
 
       {loading ? (
         <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
+          <div className="mb-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Carregando...</span>
+            </div>
           </div>
+          <p className="text-secondary">Carregando dashboard administrativo...</p>
         </div>
       ) : users.length === 0 ? (
-        <div className="alert alert-info">Nenhum usuário encontrado.</div>
+        <div className="alert alert-info">
+          <i className="bi bi-info-circle me-2"></i>
+          Nenhum usuário encontrado.
+        </div>
       ) : (
         <>
           {/* Summary */}

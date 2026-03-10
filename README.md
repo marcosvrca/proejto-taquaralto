@@ -1,47 +1,47 @@
 # Sleep & Fitness Tracker
 
-A SaaS web application for tracking sleep, fitness, nutrition, and goals. Designed for users and coaches to monitor daily activities and performance.
+Uma aplicação web SaaS para rastreamento de sono, fitness, nutrição e metas. Desenvolvida para usuários e treinadores monitorarem atividades diárias e desempenho.
 
-## Features
+## Funcionalidades
 
-- User registration and authentication
-- Admin dashboard
-- Sleep tracking with reports
-- Goal setting and tracking
-- Nutrition logging with tips
-- Workout tracking (futsal, weight training, running, etc.)
-- Analytics and reports
+- Cadastro e autenticação de usuários
+- Painel administrativo
+- Rastreamento de sono com relatórios
+- Definição e acompanhamento de metas
+- Registro de nutrição com dicas
+- Rastreamento de treinos (futsal, musculação, corrida, etc.)
+- Análises e relatórios
 
-## Tech Stack
+## Tecnologias Utilizadas
 
 - **Frontend:** React, TypeScript, Vite
 - **Backend:** Node.js, Express, TypeScript
-- **Database:** PostgreSQL with TypeORM
-- **Authentication:** JWT
-- **Containerization:** Docker
+- **Banco de Dados:** PostgreSQL com TypeORM
+- **Autenticação:** JWT
+- **Containerização:** Docker
 
-## Setup
+## Configuração
 
-1. Clone the repository
-2. Install dependencies for frontend and backend
-3. Start PostgreSQL with Docker Compose
-4. Run the backend and frontend
+1. Clone o repositório
+2. Instale as dependências do frontend e backend
+3. Inicie o PostgreSQL com Docker Compose
+4. Execute o backend e frontend
 
-## Getting Started
+## Primeiros Passos
 
-### Prerequisites
+### Pré-requisitos
 
 - Node.js
 - Docker
 
-### Installation
+### Instalação
 
 1. `cd frontend && npm install`
 2. `cd ../backend && npm install`
-3. `docker-compose up -d` to start PostgreSQL
-4. `cd backend && npm run dev` to start backend
-5. `cd frontend && npm run dev` to start frontend
+3. `docker-compose up -d` para iniciar o PostgreSQL
+4. `cd backend && npm run dev` para iniciar o backend
+5. `cd frontend && npm run dev` para iniciar o frontend
 
-## Contributing
+## Contribuição
 
-Use GitHub for version control.
+Use GitHub para controle de versão.

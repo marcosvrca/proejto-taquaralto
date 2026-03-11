@@ -32,28 +32,42 @@ const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   entities: [User, SleepRecord, Workout, Nutrition, Pain, Goal],
-  synchronize: process.env.NODE_ENV === 'development', // Somente em desenvolvimento; em produção, usar migrations
+  synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV === 'development', 
 });
 
 AppDataSource.initialize()
   .then(async () => {
     console.log('Database connected');
+    
+    // Forçar sincronização se solicitado via variável de ambiente
+    if (process.env.DB_SYNCHRONIZE === 'true') {
+      console.log('Synchronizing database schema...');
+      await AppDataSource.synchronize();
+      console.log('Database schema synchronized');
+    }
+
     app.locals.dataSource = AppDataSource;
 
     // Seed admin user
-    const userRepository = AppDataSource.getRepository(User);
-    const adminEmail = 'admin@taquaralto.com';
-    const adminExists = await userRepository.findOne({ where: { email: adminEmail } });
-    if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('@2026taquaraltofutsal', 10);
-      const admin = userRepository.create({
-        email: adminEmail,
-        password: hashedPassword,
-        name: 'Admin',
-        isAdmin: true,
-      });
-      await userRepository.save(admin);
-      console.log(`Admin user created: ${adminEmail}`);
+    try {
+      const userRepository = AppDataSource.getRepository(User);
+      const adminEmail = 'admin@taquaralto.com';
+      const adminExists = await userRepository.findOne({ where: { email: adminEmail } });
+      
+      if (!adminExists) {
+        const hashedPassword = await bcrypt.hash('@2026taquaraltofutsal', 10);
+        const admin = userRepository.create({
+          email: adminEmail,
+          password: hashedPassword,
+          name: 'Admin',
+          isAdmin: true,
+        });
+        await userRepository.save(admin);
+        console.log(`Admin user created: ${adminEmail}`);
+      }
+    } catch (seedError) {
+      console.error('Error seeding admin user:', seedError.message);
+      // Não trava o servidor se o seed falhar (ex: tabela ainda não pronta)
     }
   })
   .catch((error) => console.log(error));

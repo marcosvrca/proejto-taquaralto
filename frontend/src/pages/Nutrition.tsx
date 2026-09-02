@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface Meal {
   id: number;
@@ -34,9 +33,6 @@ const Nutrition: React.FC = () => {
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const mealTypeOptions = [
     { value: 'cafe_manha', label: 'Cafe da Manha' },
     { value: 'almoco', label: 'Almoco' },
@@ -47,7 +43,7 @@ const Nutrition: React.FC = () => {
 
   const fetchMeals = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/nutrition`, { headers });
+      const res = await api.get('/api/nutrition');
       setMeals(res.data.nutrition || []);
     } catch (error) {
       console.error('Erro ao buscar refeições:', error);
@@ -64,14 +60,14 @@ const Nutrition: React.FC = () => {
     setLoading(true);
     try {
       if (editingMeal) {
-        await axios.put(`${API_BASE_URL}/api/nutrition/${editingMeal.id}`, {
+        await api.put(`/api/nutrition/${editingMeal.id}`, {
           date, time, mealType, calories, consumedSoda, consumedAlcohol, consumedWater, consumedNaturalJuice, consumedIndustrialJuice, notes: description
-        }, { headers });
+        });
         setMessage('✅ Refeição atualizada!');
       } else {
-        await axios.post(`${API_BASE_URL}/api/nutrition`, {
+        await api.post('/api/nutrition', {
           date, time, mealType, calories, consumedSoda, consumedAlcohol, consumedWater, consumedNaturalJuice, consumedIndustrialJuice, notes: description
-        }, { headers });
+        });
         setMessage('✅ Refeição registrada!');
       }
       fetchMeals();
@@ -101,7 +97,7 @@ const Nutrition: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Deseja remover esta refeição?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/nutrition/${id}`, { headers });
+      await api.delete(`/api/nutrition/${id}`);
       setMessage('✅ Refeição removida');
       fetchMeals();
       setTimeout(() => setMessage(''), 3000);
@@ -213,7 +209,7 @@ const Nutrition: React.FC = () => {
   const totalCalories = meals.reduce((acc, m) => acc + m.calories, 0);
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row align-items-center mb-5">
         <div className="col-12">
           <h1 className="fw-black text-dark mb-1">

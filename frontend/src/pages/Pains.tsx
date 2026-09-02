@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface PainRecord {
   id: number;
@@ -21,14 +20,11 @@ const Pains: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<PainRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const bodyParts = ['Cabeça', 'Pescoço', 'Ombros', 'Costas', 'Peito', 'Braços', 'Mãos', 'Abdômen', 'Quadril', 'Pernas', 'Joelhos', 'Pés'];
 
   const fetchRecords = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/pains`, { headers });
+      const res = await api.get('/api/pains');
       setRecords(res.data);
     } catch (error) {
       console.error('Erro ao buscar registros de dor');
@@ -44,14 +40,14 @@ const Pains: React.FC = () => {
     setLoading(true);
     try {
       if (editingRecord) {
-        await axios.put(`${API_BASE_URL}/api/pains/${editingRecord.id}`, {
+        await api.put(`/api/pains/${editingRecord.id}`, {
           date, location, intensity, description
-        }, { headers });
+        });
         setMessage('✅ Registro atualizado!');
       } else {
-        await axios.post(`${API_BASE_URL}/api/pains`, {
+        await api.post('/api/pains', {
           date, location, intensity, description
-        }, { headers });
+        });
         setMessage('✅ Registro de dor salvo!');
       }
       fetchRecords();
@@ -75,7 +71,7 @@ const Pains: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Remover este registro?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/pains/${id}`, { headers });
+      await api.delete(`/api/pains/${id}`);
       setMessage('✅ Registro removido');
       fetchRecords();
       setTimeout(() => setMessage(''), 3000);
@@ -93,7 +89,7 @@ const Pains: React.FC = () => {
   };
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row align-items-center mb-5">
         <div className="col-12">
           <h1 className="fw-black text-dark mb-1">

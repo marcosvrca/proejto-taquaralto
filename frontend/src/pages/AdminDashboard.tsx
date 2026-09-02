@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
+import AthleteDetailsModal from '../components/AthleteDetailsModal';
 import './AdminDashboard.css';
 
 interface UserMetrics {
@@ -41,16 +41,11 @@ const AdminDashboard: React.FC = () => {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const fetchUsers = async (selectedPeriod: string) => {
     try {
       setLoading(true);
       setError('');
-      console.log('Buscando usuários com token:', token?.substring(0, 20) + '...');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/users?period=${selectedPeriod}`, { headers });
-      console.log('Resposta recebida:', res.data);
+      const res = await api.get(`/api/admin/users?period=${selectedPeriod}`);
       setUsers(res.data.users || []);
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error.response?.data || error.message);
@@ -63,7 +58,7 @@ const AdminDashboard: React.FC = () => {
 
   const fetchUserDetails = async (userId: number) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/users/${userId}?period=${period}`, { headers });
+      const res = await api.get(`/api/admin/users/${userId}?period=${period}`);
       setUserDetails(res.data);
       setShowDetails(true);
     } catch (error) {
@@ -88,18 +83,13 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('AdminDashboard useEffect - user:', user);
-    if (!user?.isAdmin) {
-      console.log('Usuário não é admin ou não foi carregado');
-      return;
-    }
-    console.log('Chamando fetchUsers');
+    if (!user?.isAdmin) return;
     fetchUsers(period);
   }, [user?.isAdmin, period]);
 
   if (!user?.isAdmin) {
     return (
-      <div className="container py-5 mt-5">
+      <div className="w-100">
         <div className="alert alert-danger" role="alert">
           Acesso negado. Apenas administradores podem acessar esta página.
         </div>
@@ -109,7 +99,7 @@ const AdminDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="container py-5 mt-5">
+      <div className="w-100">
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
@@ -118,7 +108,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       {/* Header */}
       <div className="row mb-5">
         <div className="col-12">
@@ -295,135 +285,8 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* User Details Modal */}
-          {showDetails && selectedUser && userDetails && (
-            <div className="modal-backdrop fade show d-block" onClick={handleCloseDetails} />
-          )}
-          {showDetails && selectedUser && userDetails && (
-            <div className="modal fade show d-block" tabIndex={-1} role="dialog">
-              <div className="modal-dialog modal-lg modal-dialog-centered">
-                <div className="modal-content">
-                  <div className="modal-header border-bottom-0">
-                    <h5 className="modal-title fw-bold">
-                      Detalhes de {selectedUser.name}
-                    </h5>
-                    <button
-                      type="button"
-                      className="btn-close"
-                      onClick={handleCloseDetails}
-                    />
-                  </div>
-                  <div className="modal-body">
-                    <div className="row mb-4">
-                      <div className="col-md-6">
-                        <h6 className="fw-bold mb-3">📊 Sono</h6>
-                        <div className="p-3 bg-light rounded-3">
-                          <p className="mb-1">
-                            <strong>Score:</strong> {selectedUser.metrics.sleep.score}/100
-                          </p>
-                          <p className="mb-1">
-                            <strong>Média Diária:</strong> {selectedUser.metrics.sleep.averageHours}h
-                          </p>
-                          <p className="mb-0">
-                            <strong>Noites Registradas:</strong> {selectedUser.metrics.sleep.totalNights}
-                          </p>
-                        </div>
-                        {userDetails.sleep.length > 0 && (
-                          <div className="mt-3">
-                            <h6 className="fw-bold mb-2">Histórico:</h6>
-                            <div className="small" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                              {userDetails.sleep.map((sleep: any, idx: number) => (
-                                <div key={idx} className="mb-2 pb-2 border-bottom">
-                                  <p className="mb-0">
-                                    <strong>{new Date(sleep.date).toLocaleDateString('pt-BR')}:</strong> {sleep.durationMinutes} minutos
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="col-md-6">
-                        <h6 className="fw-bold mb-3">🏋️ Treinos</h6>
-                        <div className="p-3 bg-light rounded-3">
-                          <p className="mb-1">
-                            <strong>Score:</strong> {selectedUser.metrics.workouts.score}/100
-                          </p>
-                          <p className="mb-1">
-                            <strong>Total:</strong> {selectedUser.metrics.workouts.total} treinos
-                          </p>
-                          <p className="mb-0">
-                            <strong>Minutos:</strong> {selectedUser.metrics.workouts.totalMinutes}
-                          </p>
-                        </div>
-                        {userDetails.workouts.length > 0 && (
-                          <div className="mt-3">
-                            <h6 className="fw-bold mb-2">Histórico:</h6>
-                            <div className="small" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                              {userDetails.workouts.map((workout: any, idx: number) => (
-                                <div key={idx} className="mb-2 pb-2 border-bottom">
-                                  <p className="mb-0">
-                                    <strong>{new Date(workout.date).toLocaleDateString('pt-BR')}:</strong> {workout.type} ({workout.durationMinutes}min)
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="row">
-                      <div className="col-12">
-                        <h6 className="fw-bold mb-3">🥗 Nutrição</h6>
-                        <div className="p-3 bg-light rounded-3 mb-3">
-                          <p className="mb-1">
-                            <strong>Score:</strong> {selectedUser.metrics.nutrition.score}/100
-                          </p>
-                          <p className="mb-1">
-                            <strong>Total de Refeições:</strong> {selectedUser.metrics.nutrition.totalMeals}
-                          </p>
-                          <p className="mb-1">
-                            <strong>Refeições Limpas:</strong> {selectedUser.metrics.nutrition.cleanMealPercentage}%
-                          </p>
-                          <p className="mb-0">
-                            <strong>Calorias Totais:</strong> {selectedUser.metrics.nutrition.totalCalories}
-                          </p>
-                        </div>
-                        {userDetails.nutrition.length > 0 && (
-                          <div>
-                            <h6 className="fw-bold mb-2">Histórico:</h6>
-                            <div className="small" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                              {userDetails.nutrition.map((nutrition: any, idx: number) => (
-                                <div key={idx} className="mb-2 pb-2 border-bottom">
-                                  <p className="mb-1">
-                                    <strong>{new Date(nutrition.date).toLocaleDateString('pt-BR')}:</strong> {nutrition.mealType}
-                                  </p>
-                                  <small className="text-muted d-block ms-3">
-                                    {nutrition.calories} kcal
-                                    {nutrition.consumedSoda && <span className="badge bg-warning ms-2">Refrigerante</span>}
-                                    {nutrition.consumedAlcohol && <span className="badge bg-danger ms-2">Álcool</span>}
-                                  </small>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="modal-footer border-top-0">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleCloseDetails}
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {showDetails && userDetails && (
+            <AthleteDetailsModal details={userDetails} onClose={handleCloseDetails} />
           )}
         </>
       )}

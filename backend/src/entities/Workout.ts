@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { User } from './User';
 
 export enum WorkoutIntensity {
@@ -28,11 +28,12 @@ export enum WorkoutType {
 }
 
 @Entity('workouts')
+@Index('IDX_workouts_user_date', ['userId', 'date'])
 export class Workout {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
@@ -40,30 +41,30 @@ export class Workout {
   userId: number;
 
   @Column({ type: 'date' })
-  date: string; // Data do treino
+  date: string;
 
   @Column({ type: 'time' })
-  time: string; // Hora do treino
+  time: string;
 
   @Column({
     type: 'enum',
     enum: WorkoutType,
     default: WorkoutType.MUSCULACAO
   })
-  type: WorkoutType; // Tipo de treino
+  type: WorkoutType;
 
   @Column({
     type: 'enum',
     enum: WorkoutIntensity,
     default: WorkoutIntensity.MODERADO
   })
-  intensity: WorkoutIntensity; // Intensidade do treino
+  intensity: WorkoutIntensity;
 
   @Column({ type: 'text', nullable: true })
-  notes: string; // Observações do treino
+  notes: string;
 
   @Column({ type: 'int', nullable: true })
-  durationMinutes: number; // Duração em minutos
+  durationMinutes: number;
 
   @CreateDateColumn()
   createdAt: Date;

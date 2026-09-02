@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
+import type { User } from '../types/user';
 
-interface User {
-  id: number;
-  email: string;
-  name: string;
+interface ManagedUser extends User {
   createdAt: string;
   canAccessSleep: boolean;
   canAccessWorkouts: boolean;
@@ -21,25 +18,20 @@ interface FormData {
 }
 
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [formData, setFormData] = useState<FormData>({ email: '', name: '', password: '' });
   const [message, setMessage] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<any>({});
-
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError('');
-      console.log('UserManagement: Buscando usuários com token:', token?.substring(0, 20) + '...');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/users/list/all`, { headers });
-      console.log('UserManagement: Usuários carregados:', res.data);
+      const res = await api.get('/api/admin/users/list/all');
       setUsers(res.data);
     } catch (error: any) {
       console.error('UserManagement: Erro ao carregar usuários:', error.response?.data || error.message);
@@ -55,7 +47,7 @@ const UserManagement: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const handleOpenForm = (user?: User) => {
+  const handleOpenForm = (user?: ManagedUser) => {
     if (user) {
       setEditingUser(user);
       setFormData({ email: user.email, name: user.name, password: '' });
@@ -91,22 +83,22 @@ const UserManagement: React.FC = () => {
     try {
       if (editingUser) {
         // Atualizar usuário e permissões
-        await axios.put(`${API_BASE_URL}/api/admin/users/${editingUser.id}`, {
+        await api.put(`/api/admin/users/${editingUser.id}`, {
           email: formData.email,
           name: formData.name
-        }, { headers });
+        });
 
-        await axios.put(`${API_BASE_URL}/api/admin/users/${editingUser.id}/permissions`, 
-          selectedPermissions, { headers });
+        await api.put(`/api/admin/users/${editingUser.id}/permissions`, selectedPermissions);
 
         setMessage('✅ Usuário e permissões atualizados!');
       } else {
         // Criar novo usuário
-        await axios.post(`${API_BASE_URL}/api/admin/users`, {
+        await api.post('/api/admin/users', {
           email: formData.email,
           name: formData.name,
-          password: formData.password
-        }, { headers });
+          password: formData.password,
+          ...selectedPermissions,
+        });
 
         setMessage('✅ Usuário criado com sucesso!');
       }
@@ -122,7 +114,7 @@ const UserManagement: React.FC = () => {
   const handleDelete = async (userId: number) => {
     if (!confirm('Deseja remover este usuário?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, { headers });
+      await api.delete(`/api/admin/users/${userId}`);
       setMessage('✅ Usuário removido com sucesso');
       fetchUsers();
       setTimeout(() => setMessage(''), 3000);
@@ -147,7 +139,7 @@ const UserManagement: React.FC = () => {
   ];
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>

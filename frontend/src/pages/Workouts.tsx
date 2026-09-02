@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface Workout {
   id: number;
@@ -25,9 +24,6 @@ const Workouts: React.FC = () => {
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const workoutTypes = [
     'Musculação', 'Futsal', 'Corrida', 'Caminhada', 
     'Natação', 'Ciclismo', 'Crossfit', 'Outro'
@@ -35,7 +31,7 @@ const Workouts: React.FC = () => {
 
   const fetchWorkouts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/workouts`, { headers });
+      const res = await api.get('/api/workouts');
       setWorkouts(res.data.workouts || []);
     } catch (error) {
       console.error('Erro ao buscar treinos:', error);
@@ -52,14 +48,14 @@ const Workouts: React.FC = () => {
     setLoading(true);
     try {
       if (editingWorkout) {
-        await axios.put(`${API_BASE_URL}/api/workouts/${editingWorkout.id}`, {
+        await api.put(`/api/workouts/${editingWorkout.id}`, {
           date, time, type, durationMinutes, intensity, notes
-        }, { headers });
+        });
         setMessage('✅ Treino atualizado!');
       } else {
-        await axios.post(`${API_BASE_URL}/api/workouts`, {
+        await api.post('/api/workouts', {
           date, time, type, durationMinutes, intensity, notes
-        }, { headers });
+        });
         setMessage('✅ Treino registrado!');
       }
       fetchWorkouts();
@@ -85,7 +81,7 @@ const Workouts: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Deseja remover este treino?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/workouts/${id}`, { headers });
+      await api.delete(`/api/workouts/${id}`);
       setMessage('✅ Treino removido');
       fetchWorkouts();
       setTimeout(() => setMessage(''), 3000);
@@ -110,7 +106,7 @@ const Workouts: React.FC = () => {
   const highIntensityCount = workouts.filter(w => w.intensity === 'Alta').length;
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row align-items-center mb-5">
         <div className="col-12">
           <h1 className="fw-black text-dark mb-1">

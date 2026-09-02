@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface Goal {
   id: number;
@@ -21,12 +20,9 @@ const Goals: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const fetchGoals = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/goals`, { headers });
+      const res = await api.get('/api/goals');
       // Ordena metas: não concluídas primeiro, concluídas no final
       const sortedGoals = res.data.sort((a: Goal, b: Goal) => {
         if (a.isCompleted === b.isCompleted) return 0;
@@ -54,14 +50,14 @@ const Goals: React.FC = () => {
     setLoading(true);
     try {
       if (editingGoal) {
-        await axios.put(`${API_BASE_URL}/api/goals/${editingGoal.id}`, {
+        await api.put(`/api/goals/${editingGoal.id}`, {
           title, description, targetDate
-        }, { headers });
+        });
         setMessage('✅ Meta atualizada!');
       } else {
-        await axios.post(`${API_BASE_URL}/api/goals`, {
+        await api.post('/api/goals', {
           title, description, targetDate
-        }, { headers });
+        });
         setMessage('✅ Nova meta definida!');
       }
       fetchGoals();
@@ -75,10 +71,10 @@ const Goals: React.FC = () => {
 
   const handleToggleComplete = async (goal: Goal) => {
     try {
-      await axios.put(`${API_BASE_URL}/api/goals/${goal.id}`, {
+      await api.put(`/api/goals/${goal.id}`, {
         ...goal,
         isCompleted: !goal.isCompleted
-      }, { headers });
+      });
       fetchGoals();
     } catch (error) {
       console.error('Erro ao atualizar status da meta');
@@ -96,7 +92,7 @@ const Goals: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Excluir esta meta?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/goals/${id}`, { headers });
+      await api.delete(`/api/goals/${id}`);
       setMessage('✅ Meta removida');
       fetchGoals();
       setTimeout(() => setMessage(''), 3000);
@@ -116,7 +112,7 @@ const Goals: React.FC = () => {
   const progressPercent = goals.length > 0 ? Math.round((completedCount / goals.length) * 100) : 0;
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row align-items-center mb-5">
         <div className="col-lg-8">
           <h1 className="fw-black text-dark mb-1">

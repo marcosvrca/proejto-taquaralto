@@ -1,15 +1,12 @@
+require('reflect-metadata');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { DataSource } = require('typeorm');
+const rateLimit = require('express-rate-limit');
+const { AppDataSource } = require('./data-source');
 const { User } = require('./entities/User');
-const { SleepRecord } = require('./entities/SleepRecord');
-const { Workout } = require('./entities/Workout');
-const { Nutrition } = require('./entities/Nutrition');
-const { Pain } = require('./entities/Pain');
-const { Goal } = require('./entities/Goal');
 const AuthController = require('./controllers/AuthController');
-const { auth, adminAuth } = require('./middlewares/auth');
+const { auth, adminAuth, requirePermission } = require('./middlewares/auth');
 const SleepController = require('./controllers/SleepController');
 const WorkoutController = require('./controllers/WorkoutController');
 const NutritionController = require('./controllers/NutritionController');
@@ -18,121 +15,148 @@ const GoalController = require('./controllers/GoalController');
 const { AdminController, UserManagementController } = require('./controllers/AdminController');
 const bcrypt = require('bcryptjs');
 
-const app = express();
+function createApp() {
+  const app = express();
 
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL ERROR: JWT_SECRET is not defined.');
-  process.exit(1);
+  if (!process.env.JWT_SECRET) {
+    console.error('FATAL ERROR: JWT_SECRET is not defined.');
+    process.exit(1);
+  }
+
+  const corsOrigin = process.env.CORS_ORIGIN;
+  app.use(
+    cors(
+      corsOrigin
+        ? { origin: corsOrigin.split(',').map((o) => o.trim()), credentials: true }
+        : undefined
+    )
+  );
+  app.use(express.json());
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Muitas tentativas. Tente novamente em alguns minutos.' },
+  });
+
+  app.post('/api/auth/login', authLimiter, AuthController.login);
+  app.post('/api/auth/register', authLimiter, AuthController.register);
+  app.post('/api/auth/refresh', authLimiter, AuthController.refresh);
+  app.get('/api/auth/me', auth, AuthController.me);
+
+  app.post('/api/sleep/bed', auth, requirePermission('sleep'), SleepController.recordBedTime);
+  app.post('/api/sleep/wake', auth, requirePermission('sleep'), SleepController.recordWakeTime);
+  app.get('/api/sleep/reports', auth, requirePermission('sleep'), SleepController.getReports);
+  app.put('/api/sleep/:id', auth, requirePermission('sleep'), SleepController.updateSleepRecord);
+  app.delete('/api/sleep/:id', auth, requirePermission('sleep'), SleepController.deleteSleepRecord);
+
+  app.post('/api/workouts', auth, requirePermission('workouts'), WorkoutController.createWorkout);
+  app.get('/api/workouts', auth, requirePermission('workouts'), WorkoutController.getWorkouts);
+  app.get('/api/workouts/reports', auth, requirePermission('workouts'), WorkoutController.getWorkoutReports);
+  app.put('/api/workouts/:id', auth, requirePermission('workouts'), WorkoutController.updateWorkout);
+  app.delete('/api/workouts/:id', auth, requirePermission('workouts'), WorkoutController.deleteWorkout);
+
+  app.post('/api/nutrition', auth, requirePermission('nutrition'), NutritionController.createNutrition);
+  app.get('/api/nutrition', auth, requirePermission('nutrition'), NutritionController.getNutrition);
+  app.get('/api/nutrition/reports', auth, requirePermission('nutrition'), NutritionController.getNutritionReports);
+  app.put('/api/nutrition/:id', auth, requirePermission('nutrition'), NutritionController.updateNutrition);
+  app.delete('/api/nutrition/:id', auth, requirePermission('nutrition'), NutritionController.deleteNutrition);
+
+  app.post('/api/pains', auth, requirePermission('health'), PainController.createPain);
+  app.get('/api/pains', auth, requirePermission('health'), PainController.getPains);
+  app.put('/api/pains/:id', auth, requirePermission('health'), PainController.updatePain);
+  app.delete('/api/pains/:id', auth, requirePermission('health'), PainController.deletePain);
+
+  app.post('/api/goals', auth, requirePermission('goals'), GoalController.createGoal);
+  app.get('/api/goals', auth, requirePermission('goals'), GoalController.getGoals);
+  app.put('/api/goals/:id', auth, requirePermission('goals'), GoalController.updateGoal);
+  app.delete('/api/goals/:id', auth, requirePermission('goals'), GoalController.deleteGoal);
+
+  app.get('/api/protected', auth, (req, res) => {
+    res.json({ message: 'Protected route', user: req.user });
+  });
+
+  app.get('/api/admin', auth, adminAuth, (req, res) => {
+    res.json({ message: 'Admin route' });
+  });
+
+  app.get('/api/admin/users/list/all', auth, adminAuth, UserManagementController.getAllUsers);
+  app.get('/api/admin/users', auth, adminAuth, AdminController.getAllUsersWithMetrics);
+  app.get('/api/admin/users/:userId', auth, adminAuth, AdminController.getUserDetailedMetrics);
+  app.post('/api/admin/users', auth, adminAuth, UserManagementController.createUser);
+  app.put('/api/admin/users/:id/permissions', auth, adminAuth, UserManagementController.updateUserPermissions);
+  app.put('/api/admin/users/:id', auth, adminAuth, UserManagementController.updateUser);
+  app.delete('/api/admin/users/:id', auth, adminAuth, UserManagementController.deleteUser);
+
+  app.get('/', (req, res) => {
+    res.send('Hello World!');
+  });
+
+  return app;
 }
 
-app.use(cors());
-app.use(express.json());
+async function seedAdmin(dataSource) {
+  try {
+    const userRepository = dataSource.getRepository(User);
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@taquaralto.com';
+    const adminExists = await userRepository.findOne({ where: { email: adminEmail } });
 
-const AppDataSource = new DataSource({
-  type: 'postgres',
-  url: process.env.DATABASE_URL,
-  entities: [User, SleepRecord, Workout, Nutrition, Pain, Goal],
-  synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV === 'development', 
-});
-
-AppDataSource.initialize()
-  .then(async () => {
-    console.log('Database connected');
-    
-    // Forçar sincronização se solicitado via variável de ambiente
-    if (process.env.DB_SYNCHRONIZE === 'true') {
-      console.log('Synchronizing database schema...');
-      await AppDataSource.synchronize();
-      console.log('Database schema synchronized');
-    }
-
-    app.locals.dataSource = AppDataSource;
-
-    // Seed admin user
-    try {
-      const userRepository = AppDataSource.getRepository(User);
-      const adminEmail = 'admin@taquaralto.com';
-      const adminExists = await userRepository.findOne({ where: { email: adminEmail } });
-      
-      if (!adminExists) {
-        const hashedPassword = await bcrypt.hash('@2026taquaraltofutsal', 10);
-        const admin = userRepository.create({
-          email: adminEmail,
-          password: hashedPassword,
-          name: 'Admin',
-          isAdmin: true,
-        });
-        await userRepository.save(admin);
-        console.log(`Admin user created: ${adminEmail}`);
+    if (!adminExists) {
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (!adminPassword) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error('ADMIN_PASSWORD is required to seed admin in production');
+          return;
+        }
+        console.warn('ADMIN_PASSWORD not set; skipping admin seed');
+        return;
       }
-    } catch (seedError) {
-      console.error('Error seeding admin user:', seedError.message);
-      // Não trava o servidor se o seed falhar (ex: tabela ainda não pronta)
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      const admin = userRepository.create({
+        email: adminEmail,
+        password: hashedPassword,
+        name: 'Admin',
+        isAdmin: true,
+      });
+      await userRepository.save(admin);
+      console.log(`Admin user created: ${adminEmail}`);
     }
-  })
-  .catch((error) => console.log(error));
-app.post('/api/auth/login', AuthController.login);
-app.post('/api/auth/register', AuthController.register);
+  } catch (seedError) {
+    console.error('Error seeding admin user:', seedError.message);
+  }
+}
 
-// Sleep routes
-app.post('/api/sleep/bed', auth, SleepController.recordBedTime);
-app.post('/api/sleep/wake', auth, SleepController.recordWakeTime);
-app.get('/api/sleep/reports', auth, SleepController.getReports);
-app.put('/api/sleep/:id', auth, SleepController.updateSleepRecord);
-app.delete('/api/sleep/:id', auth, SleepController.deleteSleepRecord);
+async function startServer() {
+  const app = createApp();
 
-// Workout routes
-app.post('/api/workouts', auth, WorkoutController.createWorkout);
-app.get('/api/workouts', auth, WorkoutController.getWorkouts);
-app.get('/api/workouts/reports', auth, WorkoutController.getWorkoutReports);
-app.put('/api/workouts/:id', auth, WorkoutController.updateWorkout);
-app.delete('/api/workouts/:id', auth, WorkoutController.deleteWorkout);
+  await AppDataSource.initialize();
+  console.log('Database connected');
 
-// Nutrition routes
-app.post('/api/nutrition', auth, NutritionController.createNutrition);
-app.get('/api/nutrition', auth, NutritionController.getNutrition);
-app.get('/api/nutrition/reports', auth, NutritionController.getNutritionReports);
-app.put('/api/nutrition/:id', auth, NutritionController.updateNutrition);
-app.delete('/api/nutrition/:id', auth, NutritionController.deleteNutrition);
+  if (process.env.DB_SYNCHRONIZE === 'true') {
+    console.log('Synchronizing database schema...');
+    await AppDataSource.synchronize();
+    console.log('Database schema synchronized');
+  }
 
-// Pain routes
-app.post('/api/pains', auth, PainController.createPain);
-app.get('/api/pains', auth, PainController.getPains);
-app.put('/api/pains/:id', auth, PainController.updatePain);
-app.delete('/api/pains/:id', auth, PainController.deletePain);
+  app.locals.dataSource = AppDataSource;
+  await seedAdmin(AppDataSource);
 
-// Goal routes
-app.post('/api/goals', auth, GoalController.createGoal);
-app.get('/api/goals', auth, GoalController.getGoals);
-app.put('/api/goals/:id', auth, GoalController.updateGoal);
-app.delete('/api/goals/:id', auth, GoalController.deleteGoal);
+  const PORT = process.env.PORT || 8000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 
-// Exemplo de rota protegida
-app.get('/api/protected', auth, (req, res) => {
-  res.json({ message: 'Protected route', user: req.user });
-});
+  return app;
+}
 
-// Rota admin
-app.get('/api/admin', auth, adminAuth, (req, res) => {
-  res.json({ message: 'Admin route' });
-});
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
 
-// Admin routes
-app.get('/api/admin/users/list/all', auth, adminAuth, UserManagementController.getAllUsers);
-app.get('/api/admin/users', auth, adminAuth, AdminController.getAllUsersWithMetrics);
-app.get('/api/admin/users/:userId', auth, adminAuth, AdminController.getUserDetailedMetrics);
-app.post('/api/admin/users', auth, adminAuth, UserManagementController.createUser);
-app.put('/api/admin/users/:id/permissions', auth, adminAuth, UserManagementController.updateUserPermissions);
-app.put('/api/admin/users/:id', auth, adminAuth, UserManagementController.updateUser);
-app.delete('/api/admin/users/:id', auth, adminAuth, UserManagementController.deleteUser);
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
+module.exports = { createApp, startServer, AppDataSource };
 export {};

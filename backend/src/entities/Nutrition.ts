@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { User } from './User';
 
 export enum MealType {
@@ -10,11 +10,12 @@ export enum MealType {
 }
 
 @Entity('nutrition')
+@Index('IDX_nutrition_user_date', ['userId', 'date'])
 export class Nutrition {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
@@ -22,38 +23,38 @@ export class Nutrition {
   userId: number;
 
   @Column({ type: 'date' })
-  date: string; // Data da refeição
+  date: string;
 
   @Column({ type: 'time' })
-  time: string; // Hora da refeição
+  time: string;
 
   @Column({
     type: 'enum',
     enum: MealType,
     default: MealType.CAFE_MANHA
   })
-  mealType: MealType; // Tipo de refeição
+  mealType: MealType;
 
   @Column({ type: 'int' })
-  calories: number; // Calorias da refeição
+  calories: number;
 
   @Column({ type: 'text', nullable: true })
-  notes: string; // O que foi consumido
+  notes: string;
 
   @Column({ type: 'boolean', default: false })
-  consumedSoda: boolean; // Consumiu refrigerante?
+  consumedSoda: boolean;
 
   @Column({ type: 'boolean', default: false })
-  consumedAlcohol: boolean; // Consumiu bebida alcoólica?
+  consumedAlcohol: boolean;
 
   @Column({ type: 'boolean', default: false })
-  consumedWater: boolean; // Consumiu água?
+  consumedWater: boolean;
 
   @Column({ type: 'boolean', default: false })
-  consumedNaturalJuice: boolean; // Consumiu suco natural?
+  consumedNaturalJuice: boolean;
 
   @Column({ type: 'boolean', default: false })
-  consumedIndustrialJuice: boolean; // Consumiu suco industrial?
+  consumedIndustrialJuice: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,10 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'sports';
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -21,26 +20,15 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+/** Tema fixo dark navy + gold (layout Taquaralto). */
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Verificar se há um tema salvo no localStorage
-    const savedTheme = localStorage.getItem('theme');
-    return (savedTheme as Theme) || 'light';
-  });
-
   useEffect(() => {
-    // Aplicar o tema ao body
-    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
-    // Salvar no localStorage
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
+    document.body.className = 'theme-sports';
+    localStorage.setItem('theme', 'sports');
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: 'sports' }}>
       {children}
     </ThemeContext.Provider>
   );

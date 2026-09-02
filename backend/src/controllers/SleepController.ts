@@ -9,7 +9,14 @@ class SleepController {
     try {
       const sleepRepository = req.app.locals.dataSource.getRepository(SleepRecord);
 
-      // Criar novo registro completo
+      const existing = await sleepRepository.findOne({ where: { userId, date } });
+      if (existing) {
+        return res.status(409).json({
+          message: 'Já existe um registro de sono para esta data. Edite o existente.',
+          record: existing,
+        });
+      }
+
       const record = sleepRepository.create({
         userId,
         date,
@@ -17,16 +24,20 @@ class SleepController {
         wakeTime,
       });
 
-      // Calcular duração
       const bed = new Date(`${date}T${bedTime}`);
       const wake = new Date(`${date}T${wakeTime}`);
-      if (wake < bed) wake.setDate(wake.getDate() + 1); // Se acordar no dia seguinte
+      if (wake < bed) wake.setDate(wake.getDate() + 1);
       record.durationMinutes = Math.round((wake.getTime() - bed.getTime()) / (1000 * 60));
 
       await sleepRepository.save(record);
 
       res.json({ message: 'Sleep cycle recorded', record });
     } catch (error) {
+      if (error?.code === '23505') {
+        return res.status(409).json({
+          message: 'Já existe um registro de sono para esta data. Edite o existente.',
+        });
+      }
       console.error('Erro ao registrar ciclo de sono:', error);
       res.status(500).json({ message: 'Server error', error: error.message });
     }

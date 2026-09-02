@@ -1,12 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Unique, Index } from 'typeorm';
 import { User } from './User';
 
 @Entity('sleep_records')
+@Unique('UQ_sleep_user_date', ['userId', 'date'])
+@Index('IDX_sleep_user_date', ['userId', 'date'])
 export class SleepRecord {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
@@ -14,16 +16,16 @@ export class SleepRecord {
   userId: number;
 
   @Column({ type: 'date' })
-  date: string; // Data do registro
+  date: string;
 
   @Column({ type: 'time', nullable: true })
-  bedTime: string; // Hora de dormir
+  bedTime: string;
 
   @Column({ type: 'time', nullable: true })
-  wakeTime: string; // Hora de acordar
+  wakeTime: string;
 
   @Column({ type: 'int', nullable: true })
-  durationMinutes: number; // Duração calculada
+  durationMinutes: number;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface DashboardData {
   sleep: {
@@ -36,18 +35,15 @@ const Dashboard: React.FC = () => {
   const [period, setPeriod] = useState('week');
   const [message, setMessage] = useState('');
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
 
       // Buscar dados de todos os módulos com Promise.allSettled para não falhar se um endpoint não funcionar
       const [sleepRes, workoutRes, nutritionRes] = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/sleep/reports?period=${period}`, { headers }),
-        axios.get(`${API_BASE_URL}/api/workouts/reports?period=${period}`, { headers }),
-        axios.get(`${API_BASE_URL}/api/nutrition/reports?period=${period}`, { headers }),
+        api.get(`/api/sleep/reports?period=${period}`),
+        api.get(`/api/workouts/reports?period=${period}`),
+        api.get(`/api/nutrition/reports?period=${period}`),
       ]);
 
       // Extrair dados ou usar valores padrão se falhar
@@ -167,7 +163,7 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container py-5 mt-5 text-center">
+      <div className="w-100 text-center">
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Carregando...</span>
         </div>
@@ -177,7 +173,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row mb-4">
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center">

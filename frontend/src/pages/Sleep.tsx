@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 interface SleepRecord {
   id: number;
@@ -25,18 +24,15 @@ const Sleep: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<SleepRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'diary' | 'reports'>('diary');
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}` };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (editingRecord) {
-        await axios.put(`${API_BASE_URL}/api/sleep/${editingRecord.id}`, { date, bedTime, wakeTime }, { headers });
+        await api.put(`/api/sleep/${editingRecord.id}`, { date, bedTime, wakeTime });
         setMessage('✅ Ciclo de sono atualizado!');
       } else {
-        await axios.post(`${API_BASE_URL}/api/sleep/bed`, { date, bedTime, wakeTime }, { headers });
+        await api.post('/api/sleep/bed', { date, bedTime, wakeTime });
         setMessage('✅ Ciclo de sono registrado!');
       }
       fetchRecords();
@@ -59,7 +55,7 @@ const Sleep: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Deletar este registro?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/sleep/${id}`, { headers });
+      await api.delete(`/api/sleep/${id}`);
       setMessage('✅ Registro removido');
       fetchRecords();
       setTimeout(() => setMessage(''), 3000);
@@ -77,7 +73,7 @@ const Sleep: React.FC = () => {
 
   const fetchRecords = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/sleep/reports?period=${period}`, { headers });
+      const res = await api.get(`/api/sleep/reports?period=${period}`);
       setRecords(res.data.records);
       setBestDay(res.data.bestDay);
       setWorstDay(res.data.worstDay);
@@ -99,7 +95,7 @@ const Sleep: React.FC = () => {
   };
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="w-100">
       <div className="row align-items-center mb-5">
         <div className="col-lg-6">
           <h1 className="fw-black text-dark mb-1">

@@ -17,6 +17,12 @@ const GamesController = require('./controllers/GamesController');
 const AthletePerformanceController = require('./controllers/AthletePerformanceController');
 const bcrypt = require('bcryptjs');
 
+function normalizeOrigin(origin) {
+  return String(origin || '')
+    .trim()
+    .replace(/\/+$/, '');
+}
+
 function createApp() {
   const app = express();
 
@@ -26,13 +32,30 @@ function createApp() {
   }
 
   const corsOrigin = process.env.CORS_ORIGIN;
-  app.use(
-    cors(
-      corsOrigin
-        ? { origin: corsOrigin.split(',').map((o) => o.trim()), credentials: true }
-        : undefined
-    )
-  );
+  const allowedOrigins = corsOrigin
+    ? corsOrigin
+        .split(',')
+        .map((o) => normalizeOrigin(o))
+        .filter(Boolean)
+    : [];
+
+  const corsOptions =
+    allowedOrigins.length > 0
+      ? {
+          origin(origin, callback) {
+            if (!origin) return callback(null, true);
+            const normalizedRequestOrigin = normalizeOrigin(origin);
+            return callback(null, allowedOrigins.includes(normalizedRequestOrigin));
+          },
+          credentials: true,
+        }
+      : {
+          origin: true,
+          credentials: true,
+        };
+
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(express.json());
 
   const authLimiter = rateLimit({

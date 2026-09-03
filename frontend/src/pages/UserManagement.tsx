@@ -139,24 +139,20 @@ const UserManagement: React.FC = () => {
   ];
 
   return (
-    <div className="w-100">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-5">
-        <div>
-          <h1 className="fw-black text-dark mb-1">
-            <i className="bi bi-people text-primary me-2"></i>
-            Gerenciar Usuários
-          </h1>
-          <p className="text-secondary lead fs-6">Gerencie usuários, permissões e acessos ao sistema</p>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Sistema</p>
+          <h1 className="page-title">Gerenciar Atletas</h1>
+          <p className="page-subtitle">Gerencie usuários, permissões e acessos ao sistema</p>
         </div>
-        <button className="btn btn-primary btn-lg rounded-3" onClick={() => handleOpenForm()}>
+        <button type="button" className="btn btn-primary" onClick={() => handleOpenForm()}>
           <i className="bi bi-plus-circle me-2"></i>Novo Usuário
         </button>
-      </div>
+      </header>
 
-      {/* Error State */}
       {error && (
-        <div className="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4">
+        <div className="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm border-0 mb-0">
           <div className="d-flex align-items-center">
             <i className="bi bi-exclamation-triangle-fill me-2"></i>
             {error}
@@ -165,9 +161,8 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Message State */}
       {message && (
-        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-0 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
           <div className="d-flex align-items-center">
             <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
             {message}
@@ -176,7 +171,6 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Formulário */}
       {showForm && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg modal-dialog-centered">
@@ -263,15 +257,12 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Loading State */}
       {loading ? (
         <div className="text-center py-5">
-          <div className="mb-3">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Carregando...</span>
-            </div>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
           </div>
-          <p className="text-secondary">Carregando usuários...</p>
+          <p className="text-secondary mt-3">Carregando usuários...</p>
         </div>
       ) : users.length === 0 ? (
         <div className="alert alert-info rounded-4">
@@ -279,51 +270,67 @@ const UserManagement: React.FC = () => {
           Nenhum usuário encontrado
         </div>
       ) : (
-        <div className="table-responsive shadow-sm rounded-4 overflow-hidden">
-          <table className="table table-hover mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>Email</th>
-                <th>Nome</th>
-                <th>Registrado em</th>
-                <th>Permissões</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="fw-bold">{user.email}</td>
-                  <td>{user.name}</td>
-                  <td>{new Date(user.createdAt).toLocaleDateString('pt-BR')}</td>
-                  <td>
-                    <div className="d-flex gap-1 flex-wrap">
-                      {user.canAccessSleep && <span className="badge bg-primary-subtle text-primary">Sono</span>}
-                      {user.canAccessWorkouts && <span className="badge bg-danger-subtle text-danger">Treinos</span>}
-                      {user.canAccessNutrition && <span className="badge bg-success-subtle text-success">Nutrição</span>}
-                      {user.canAccessHealth && <span className="badge bg-warning-subtle text-warning">Saúde</span>}
-                      {user.canAccessGoals && <span className="badge bg-info-subtle text-info">Metas</span>}
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-outline-primary rounded-2 me-2"
-                      onClick={() => handleOpenForm(user)}
-                    >
-                      <i className="bi bi-pencil"></i> Editar
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger rounded-2"
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      <i className="bi bi-trash"></i> Deletar
-                    </button>
-                  </td>
+        <section className="page-panel">
+          <div className="page-panel__toolbar">
+            <h2 className="page-panel__title">Usuários cadastrados</h2>
+            <span className="text-muted small">{users.length} no total</span>
+          </div>
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 page-table">
+              <thead>
+                <tr>
+                  <th>Atleta</th>
+                  <th>Registrado em</th>
+                  <th>Permissões</th>
+                  <th className="text-end">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <div className="page-person">
+                        <div className="page-avatar" style={{ background: 'var(--accent)' }}>
+                          {(user.name || user.email || '?').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="page-person__name">{user.name || '—'}</div>
+                          <div className="page-person__meta">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{new Date(user.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td>
+                      <div className="d-flex gap-1 flex-wrap">
+                        {user.canAccessSleep && <span className="badge bg-primary-subtle text-primary">Sono</span>}
+                        {user.canAccessWorkouts && <span className="badge bg-danger-subtle text-danger">Treinos</span>}
+                        {user.canAccessNutrition && <span className="badge bg-success-subtle text-success">Nutrição</span>}
+                        {user.canAccessHealth && <span className="badge bg-warning-subtle text-warning">Saúde</span>}
+                        {user.canAccessGoals && <span className="badge bg-info-subtle text-info">Metas</span>}
+                      </div>
+                    </td>
+                    <td className="text-end text-nowrap">
+                      <button
+                        type="button"
+                        className="page-details-btn me-2"
+                        onClick={() => handleOpenForm(user)}
+                      >
+                        <i className="bi bi-pencil"></i> Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger rounded-2"
+                        onClick={() => handleDelete(user.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

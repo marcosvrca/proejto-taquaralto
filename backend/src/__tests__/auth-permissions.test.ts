@@ -220,3 +220,4 @@ describe('Auth, permissões e integridade', () => {
     expect(gone).toBeNull();
   });
 });
+export {};

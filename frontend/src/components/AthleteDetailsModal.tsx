@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -19,6 +19,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
+import api from '../services/api';
 
 const CHART_COLORS = ['#0d6efd', '#dc3545', '#198754', '#fd7e14', '#6f42c1', '#20c997', '#ffc107'];
 
@@ -57,10 +58,71 @@ function formatDate(dateStr?: string) {
 interface AthleteDetailsModalProps {
   details: any;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
-const AthleteDetailsModal: React.FC<AthleteDetailsModalProps> = ({ details, onClose }) => {
-  const [tab, setTab] = useState<'overview' | 'sleep' | 'workouts' | 'nutrition' | 'health' | 'goals'>('overview');
+const AthleteDetailsModal: React.FC<AthleteDetailsModalProps> = ({ details, onClose, onRefresh }) => {
+  const [tab, setTab] = useState<'overview' | 'sleep' | 'workouts' | 'nutrition' | 'health' | 'goals' | 'notes'>('overview');
+  const [noteType, setNoteType] = useState<'treino' | 'jogo' | null>(null);
+  const [noteDate, setNoteDate] = useState(new Date().toISOString().split('T')[0]);
+  const [opponent, setOpponent] = useState('');
+  const [rating, setRating] = useState<number | ''>('');
+  const [observation, setObservation] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteMessage, setNoteMessage] = useState('');
+  const [notes, setNotes] = useState<any[]>(details.notes?.items || []);
+
+  useEffect(() => {
+    setNotes(details.notes?.items || []);
+  }, [details.notes?.items]);
+
+  const resetNoteForm = () => {
+    setNoteType(null);
+    setNoteDate(new Date().toISOString().split('T')[0]);
+    setOpponent('');
+    setRating('');
+    setObservation('');
+  };
+
+  const handleCreateNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteType) return;
+    const ratingValue = Number(rating);
+    if (Number.isNaN(ratingValue) || ratingValue < 0 || ratingValue > 10) {
+      setNoteMessage('Informe uma nota entre 0 e 10.');
+      return;
+    }
+    setSavingNote(true);
+    setNoteMessage('');
+    try {
+      const res = await api.post(`/api/admin/users/${details.user.id}/notes`, {
+        type: noteType,
+        date: noteDate,
+        opponent: noteType === 'jogo' ? opponent : undefined,
+        rating: ratingValue,
+        observation,
+      });
+      setNotes((prev) => [res.data.note, ...prev]);
+      setNoteMessage('Nota salva com sucesso.');
+      resetNoteForm();
+      onRefresh?.();
+    } catch (error: any) {
+      setNoteMessage(error.response?.data?.message || 'Erro ao salvar nota');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!confirm('Remover esta nota?')) return;
+    try {
+      await api.delete(`/api/admin/users/${details.user.id}/notes/${noteId}`);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      onRefresh?.();
+    } catch (error: any) {
+      setNoteMessage(error.response?.data?.message || 'Erro ao remover nota');
+    }
+  };
 
   const radarData = useMemo(
     () => [
@@ -175,6 +237,7 @@ const AthleteDetailsModal: React.FC<AthleteDetailsModalProps> = ({ details, onCl
               <ul className="nav nav-pills gap-1 mb-4 flex-wrap">
                 {[
                   { id: 'overview', label: 'Visão geral' },
+                  { id: 'notes', label: 'Notas' },
                   { id: 'sleep', label: 'Sono' },
                   { id: 'workouts', label: 'Treinos' },
                   { id: 'nutrition', label: 'Nutrição' },
@@ -544,6 +607,172 @@ const AthleteDetailsModal: React.FC<AthleteDetailsModalProps> = ({ details, onCl
                         p.description || '—',
                       ])}
                     />
+                  </div>
+                </div>
+              )}
+
+              {tab === 'notes' && (
+                <div className="row g-4">
+                  <div className="col-12">
+                    <div className="d-flex flex-wrap gap-2 mb-3">
+                      <button
+                        type="button"
+                        className={`btn ${noteType === 'treino' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setNoteType(noteType === 'treino' ? null : 'treino')}
+                      >
+                        Nota no treino
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${noteType === 'jogo' ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={() => setNoteType(noteType === 'jogo' ? null : 'jogo')}
+                      >
+                        Nota no jogo
+                      </button>
+                    </div>
+
+                    {noteType && (
+                      <form onSubmit={handleCreateNote} className="p-3 rounded-3 bg-light border mb-4">
+                        <h6 className="fw-bold mb-3">
+                          {noteType === 'treino' ? 'Nova nota de treino' : 'Nova nota de jogo'}
+                        </h6>
+                        <div className="row g-3">
+                          <div className="col-md-4">
+                            <label className="form-label small fw-bold">Data</label>
+                            <input
+                              type="date"
+                              className="form-control"
+                              value={noteDate}
+                              onChange={(e) => setNoteDate(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label small fw-bold">Nota (0 a 10)</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              min={0}
+                              max={10}
+                              step={0.5}
+                              placeholder="Ex: 8"
+                              value={rating}
+                              onChange={(e) => setRating(e.target.value === '' ? '' : Number(e.target.value))}
+                              required
+                            />
+                          </div>
+                          {noteType === 'jogo' && (
+                            <div className="col-md-4">
+                              <label className="form-label small fw-bold">Adversário</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Ex: Time Rival"
+                                value={opponent}
+                                onChange={(e) => setOpponent(e.target.value)}
+                                required
+                              />
+                            </div>
+                          )}
+                          <div className="col-12">
+                            <label className="form-label small fw-bold">Observações</label>
+                            <textarea
+                              className="form-control"
+                              rows={4}
+                              placeholder={
+                                noteType === 'treino'
+                                  ? 'Desempenho no treino, postura, intensidade, pontos de atenção...'
+                                  : 'Desempenho no jogo, participação, decisões, avaliação geral...'
+                              }
+                              value={observation}
+                              onChange={(e) => setObservation(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="col-12 d-flex gap-2">
+                            <button type="submit" className="btn btn-primary" disabled={savingNote}>
+                              {savingNote ? 'Salvando...' : 'Salvar nota'}
+                            </button>
+                            <button type="button" className="btn btn-outline-secondary" onClick={resetNoteForm}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    )}
+
+                    {noteMessage && (
+                      <div className="alert alert-info py-2">{noteMessage}</div>
+                    )}
+                  </div>
+
+                  <div className="col-md-6">
+                    <h6 className="fw-bold mb-3">
+                      Notas de treino ({notes.filter((n) => n.type === 'treino').length})
+                    </h6>
+                    {notes.filter((n) => n.type === 'treino').length === 0 ? (
+                      <Empty />
+                    ) : (
+                      <div className="d-flex flex-column gap-2">
+                        {notes
+                          .filter((n) => n.type === 'treino')
+                          .map((n) => (
+                            <div key={n.id} className="p-3 rounded-3 bg-light border">
+                              <div className="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <div className="fw-bold">Treino · {formatDate(n.date)}</div>
+                                    <span className="badge bg-primary">Nota {Number(n.rating)}</span>
+                                  </div>
+                                  <div className="mt-2" style={{ whiteSpace: 'pre-wrap' }}>{n.observation}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteNote(n.id)}
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="col-md-6">
+                    <h6 className="fw-bold mb-3">
+                      Notas de jogo ({notes.filter((n) => n.type === 'jogo').length})
+                    </h6>
+                    {notes.filter((n) => n.type === 'jogo').length === 0 ? (
+                      <Empty />
+                    ) : (
+                      <div className="d-flex flex-column gap-2">
+                        {notes
+                          .filter((n) => n.type === 'jogo')
+                          .map((n) => (
+                            <div key={n.id} className="p-3 rounded-3 bg-light border">
+                              <div className="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <div className="fw-bold">Jogo · {formatDate(n.date)}</div>
+                                    <span className="badge bg-danger">Nota {Number(n.rating)}</span>
+                                  </div>
+                                  <div className="small text-muted mb-2">Adversário: {n.opponent || '—'}</div>
+                                  <div style={{ whiteSpace: 'pre-wrap' }}>{n.observation}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteNote(n.id)}
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

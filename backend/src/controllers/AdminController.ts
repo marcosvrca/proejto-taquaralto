@@ -1,16 +1,60 @@
-import { MoreThanOrEqual } from 'typeorm';
+import { MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
 import { User } from '../entities/User';
 import { SleepRecord } from '../entities/SleepRecord';
 import { Workout } from '../entities/Workout';
 import { Nutrition } from '../entities/Nutrition';
 import { Pain } from '../entities/Pain';
 import { Goal } from '../entities/Goal';
+import { AthleteNote, AthleteNoteType } from '../entities/AthleteNote';
+
+function resolveDateRange(query: { period?: string; from?: string; to?: string }) {
+  const fromParam = typeof query.from === 'string' && query.from ? query.from : null;
+  const toParam = typeof query.to === 'string' && query.to ? query.to : null;
+
+  if (fromParam || toParam || query.period === 'custom') {
+    const startDateStr = fromParam || '1970-01-01';
+    const endDateStr = toParam || new Date().toISOString().split('T')[0];
+    const startDate = new Date(`${startDateStr}T00:00:00`);
+    const endDate = new Date(`${endDateStr}T23:59:59`);
+    return {
+      period: 'custom',
+      startDate,
+      endDate,
+      startDateStr,
+      endDateStr,
+      dateWhere:
+        fromParam && toParam
+          ? Between(startDateStr, endDateStr)
+          : fromParam
+            ? MoreThanOrEqual(startDateStr)
+            : LessThanOrEqual(endDateStr),
+    };
+  }
+
+  const period = query.period || 'week';
+  const now = new Date();
+  const startDate = new Date(now);
+  if (period === 'week') startDate.setDate(now.getDate() - 7);
+  else if (period === 'month') startDate.setMonth(now.getMonth() - 1);
+  else if (period === 'year') startDate.setFullYear(now.getFullYear() - 1);
+  else startDate.setDate(now.getDate() - 7);
+
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const endDateStr = now.toISOString().split('T')[0];
+  return {
+    period,
+    startDate,
+    endDate: now,
+    startDateStr,
+    endDateStr,
+    dateWhere: MoreThanOrEqual(startDateStr),
+  };
+}
 
 class AdminController {
   static async getAllUsersWithMetrics(req, res) {
-    const period = req.query.period || 'week';
-
     try {
+      const range = resolveDateRange(req.query);
       const userRepository = req.app.locals.dataSource.getRepository(User);
       const sleepRepository = req.app.locals.dataSource.getRepository(SleepRecord);
       const workoutRepository = req.app.locals.dataSource.getRepository(Workout);
@@ -22,21 +66,7 @@ class AdminController {
         order: { createdAt: 'DESC' },
       });
 
-      // Calcular data de início baseado no período
-      const now = new Date();
-      let startDate = new Date(now);
-
-      if (period === 'week') {
-        startDate.setDate(now.getDate() - 7);
-      } else if (period === 'month') {
-        startDate.setMonth(now.getMonth() - 1);
-      } else if (period === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1);
-      } else {
-        startDate.setDate(now.getDate() - 7);
-      }
-
-      const startDateStr = startDate.toISOString().split('T')[0];
+      const { startDate, endDate, startDateStr, endDateStr, dateWhere, period } = range;
 
       // Para cada usuário, buscar suas métricas
       const usersWithMetrics = await Promise.all(
@@ -45,7 +75,7 @@ class AdminController {
           const sleepRecords = await sleepRepository.find({
             where: {
               userId: user.id,
-              date: MoreThanOrEqual(startDateStr),
+              date: dateWhere,
             },
           });
 
@@ -59,7 +89,7 @@ class AdminController {
           const workouts = await workoutRepository.find({
             where: {
               userId: user.id,
-              date: MoreThanOrEqual(startDateStr),
+              date: dateWhere,
             },
           });
 
@@ -70,25 +100,21 @@ class AdminController {
           const nutrition = await nutritionRepository.find({
             where: {
               userId: user.id,
+              date: dateWhere,
             },
           });
 
-          const nutritionFiltered = nutrition.filter((n) => {
-            const nDate = new Date(n.date);
-            return nDate >= startDate;
-          });
-
-          const totalMeals = nutritionFiltered.length;
-          const mealsWithGoodBeverages = nutritionFiltered.filter(
+          const totalMeals = nutrition.length;
+          const mealsWithGoodBeverages = nutrition.filter(
             (n) => (n.consumedWater || n.consumedNaturalJuice) && !n.consumedSoda && !n.consumedAlcohol && !n.consumedIndustrialJuice
           ).length;
           const cleanMealPercentage = totalMeals > 0 ? Math.round((mealsWithGoodBeverages / totalMeals) * 100) : 0;
-          const totalCalories = nutritionFiltered.reduce((sum, n) => sum + n.calories, 0);
+          const totalCalories = nutrition.reduce((sum, n) => sum + n.calories, 0);
 
           // Calcular scores
           const sleepScore = calculateSleepScore(averageSleepHours, sleepRecords.length);
           const workoutScore = calculateWorkoutScore(totalWorkouts, totalWorkoutMinutes);
-          const nutritionScore = calculateNutritionScore(nutritionFiltered);
+          const nutritionScore = calculateNutritionScore(nutrition);
 
           const overallScore = Math.round((sleepScore + workoutScore + nutritionScore) / 3);
 
@@ -129,6 +155,8 @@ class AdminController {
         summary: {
           totalUsers: users.length,
           period,
+          from: startDateStr,
+          to: endDateStr,
         },
       });
     } catch (error) {
@@ -139,9 +167,10 @@ class AdminController {
 
   static async getUserDetailedMetrics(req, res) {
     const { userId } = req.params;
-    const period = req.query.period || 'week';
 
     try {
+      const range = resolveDateRange(req.query);
+      const { startDate, endDate, startDateStr, endDateStr, dateWhere, period } = range;
       const dataSource = req.app.locals.dataSource;
       const userRepository = dataSource.getRepository(User);
       const sleepRepository = dataSource.getRepository(SleepRecord);
@@ -149,6 +178,7 @@ class AdminController {
       const nutritionRepository = dataSource.getRepository(Nutrition);
       const painRepository = dataSource.getRepository(Pain);
       const goalRepository = dataSource.getRepository(Goal);
+      const noteRepository = dataSource.getRepository(AthleteNote);
 
       const user = await userRepository.findOne({ where: { id: parseInt(userId) } });
 
@@ -156,46 +186,37 @@ class AdminController {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      const now = new Date();
-      let startDate = new Date(now);
-
-      if (period === 'week') {
-        startDate.setDate(now.getDate() - 7);
-      } else if (period === 'month') {
-        startDate.setMonth(now.getMonth() - 1);
-      } else if (period === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1);
-      } else {
-        startDate.setDate(now.getDate() - 7);
-      }
-
-      const startDateStr = startDate.toISOString().split('T')[0];
       const uid = parseInt(userId);
 
-      const [sleepRecords, workouts, nutritionAll, pains, goals] = await Promise.all([
+      const [sleepRecords, workouts, nutritionAll, pains, goals, notes] = await Promise.all([
         sleepRepository.find({
-          where: { userId: uid, date: MoreThanOrEqual(startDateStr) },
+          where: { userId: uid, date: dateWhere },
           order: { date: 'ASC' },
         }),
         workoutRepository.find({
-          where: { userId: uid, date: MoreThanOrEqual(startDateStr) },
+          where: { userId: uid, date: dateWhere },
           order: { date: 'ASC' },
         }),
         nutritionRepository.find({
-          where: { userId: uid, date: MoreThanOrEqual(startDateStr) },
+          where: { userId: uid, date: dateWhere },
           order: { date: 'ASC' },
         }),
         painRepository.find({
-          where: { userId: uid, date: MoreThanOrEqual(startDateStr) },
+          where: { userId: uid, date: dateWhere },
           order: { date: 'ASC' },
         }),
         goalRepository.find({
           where: { userId: uid },
           order: { targetDate: 'ASC' },
         }),
+        noteRepository.find({
+          where: { athleteId: uid, date: dateWhere },
+          order: { date: 'DESC', createdAt: 'DESC' },
+        }),
       ]);
 
       const nutrition = nutritionAll;
+      const now = endDate;
 
       // ---- Sleep analytics ----
       const sleepMinutes = sleepRecords.map((r) => r.durationMinutes || 0);
@@ -364,6 +385,8 @@ class AdminController {
           },
         },
         period,
+        from: startDateStr,
+        to: endDateStr,
         expectedDays,
         scores: {
           sleep: sleepScore,
@@ -443,11 +466,140 @@ class AdminController {
           },
           items: goals,
         },
+        notes: {
+          summary: {
+            total: notes.length,
+            treino: notes.filter((n) => n.type === AthleteNoteType.TREINO || n.type === 'treino').length,
+            jogo: notes.filter((n) => n.type === AthleteNoteType.JOGO || n.type === 'jogo').length,
+          },
+          items: notes,
+        },
         evolution,
         insights,
       });
     } catch (error) {
       console.error('Erro ao buscar detalhes do usuário:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  }
+
+  static async createAthleteNote(req, res) {
+    const { userId } = req.params;
+    const { type, date, opponent, observation, rating } = req.body;
+
+    try {
+      if (!type || !date || !observation?.trim()) {
+        return res.status(400).json({ message: 'Tipo, data e observação são obrigatórios' });
+      }
+      if (!['treino', 'jogo'].includes(type)) {
+        return res.status(400).json({ message: 'Tipo deve ser treino ou jogo' });
+      }
+      if (type === 'jogo' && !opponent?.trim()) {
+        return res.status(400).json({ message: 'Informe o adversário para nota de jogo' });
+      }
+
+      const ratingValue = Number(rating);
+      if (Number.isNaN(ratingValue) || ratingValue < 0 || ratingValue > 10) {
+        return res.status(400).json({ message: 'Nota deve ser um número entre 0 e 10' });
+      }
+
+      const dataSource = req.app.locals.dataSource;
+      const userRepository = dataSource.getRepository(User);
+      const noteRepository = dataSource.getRepository(AthleteNote);
+
+      const athlete = await userRepository.findOne({ where: { id: parseInt(userId) } });
+      if (!athlete || athlete.isAdmin) {
+        return res.status(404).json({ message: 'Atleta não encontrado' });
+      }
+
+      const note = noteRepository.create({
+        athleteId: athlete.id,
+        adminId: req.user.id,
+        type,
+        date,
+        opponent: type === 'jogo' ? opponent.trim() : null,
+        rating: ratingValue,
+        observation: observation.trim(),
+      });
+
+      await noteRepository.save(note);
+      res.status(201).json({ message: 'Nota registrada com sucesso', note });
+    } catch (error) {
+      console.error('Erro ao criar nota do atleta:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  }
+
+  static async updateAthleteNote(req, res) {
+    const { userId, noteId } = req.params;
+    const { type, date, opponent, observation, rating } = req.body;
+
+    try {
+      const noteRepository = req.app.locals.dataSource.getRepository(AthleteNote);
+      const note = await noteRepository.findOne({
+        where: { id: parseInt(noteId), athleteId: parseInt(userId) },
+      });
+
+      if (!note) {
+        return res.status(404).json({ message: 'Nota não encontrada' });
+      }
+
+      if (type !== undefined) {
+        if (!['treino', 'jogo'].includes(type)) {
+          return res.status(400).json({ message: 'Tipo deve ser treino ou jogo' });
+        }
+        note.type = type;
+      }
+      if (date !== undefined) note.date = date;
+      if (observation !== undefined) {
+        if (!observation.trim()) {
+          return res.status(400).json({ message: 'Observação não pode ser vazia' });
+        }
+        note.observation = observation.trim();
+      }
+      if (rating !== undefined) {
+        const ratingValue = Number(rating);
+        if (Number.isNaN(ratingValue) || ratingValue < 0 || ratingValue > 10) {
+          return res.status(400).json({ message: 'Nota deve ser um número entre 0 e 10' });
+        }
+        note.rating = ratingValue;
+      }
+
+      const finalType = note.type;
+      if (finalType === 'jogo' || finalType === AthleteNoteType.JOGO) {
+        if (opponent !== undefined) note.opponent = opponent?.trim() || null;
+        if (!note.opponent) {
+          return res.status(400).json({ message: 'Informe o adversário para nota de jogo' });
+        }
+      } else {
+        note.opponent = null;
+      }
+
+      await noteRepository.save(note);
+      res.json({ message: 'Nota atualizada com sucesso', note });
+    } catch (error) {
+      console.error('Erro ao atualizar nota do atleta:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  }
+
+  static async deleteAthleteNote(req, res) {
+    const { userId, noteId } = req.params;
+
+    try {
+      const noteRepository = req.app.locals.dataSource.getRepository(AthleteNote);
+      const note = await noteRepository.findOne({
+        where: { id: parseInt(noteId), athleteId: parseInt(userId) },
+      });
+
+      if (!note) {
+        return res.status(404).json({ message: 'Nota não encontrada' });
+      }
+
+      await noteRepository.remove(note);
+      res.json({ message: 'Nota removida com sucesso' });
+    } catch (error) {
+      console.error('Erro ao deletar nota do atleta:', error);
       res.status(500).json({ message: 'Server error', error: error.message });
     }
   }
@@ -824,6 +976,7 @@ class UserManagementController {
       }
 
       await dataSource.transaction(async (manager) => {
+        await manager.getRepository(AthleteNote).delete({ athleteId: userId });
         await manager.getRepository(SleepRecord).delete({ userId });
         await manager.getRepository(Workout).delete({ userId });
         await manager.getRepository(Nutrition).delete({ userId });

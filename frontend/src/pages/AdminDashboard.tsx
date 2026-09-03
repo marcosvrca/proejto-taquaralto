@@ -31,21 +31,49 @@ interface UserMetrics {
   rank: string;
 }
 
+const AVATAR_COLORS = ['#d4af37', '#2ecc71', '#5dade2', '#e67e22', '#9b59b6', '#1abc9c', '#e74c3c', '#f0d878'];
+
+function getInitials(name?: string, email?: string) {
+  const source = (name || email || '?').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return source.slice(0, 2).toUpperCase();
+}
+
+function avatarColor(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash + seed.charCodeAt(i) * (i + 1)) % 997;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [period, setPeriod] = useState('week');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserMetrics | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [search, setSearch] = useState('');
 
-  const fetchUsers = async (selectedPeriod: string) => {
+  const buildQuery = (selectedPeriod: string, from = customFrom, to = customTo) => {
+    if (selectedPeriod === 'custom') {
+      const params = new URLSearchParams({ period: 'custom' });
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      return params.toString();
+    }
+    return `period=${selectedPeriod}`;
+  };
+
+  const fetchUsers = async (selectedPeriod: string, from = customFrom, to = customTo) => {
     try {
       setLoading(true);
       setError('');
-      const res = await api.get(`/api/admin/users?period=${selectedPeriod}`);
+      const res = await api.get(`/api/admin/users?${buildQuery(selectedPeriod, from, to)}`);
       setUsers(res.data.users || []);
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error.response?.data || error.message);
@@ -58,7 +86,7 @@ const AdminDashboard: React.FC = () => {
 
   const fetchUserDetails = async (userId: number) => {
     try {
-      const res = await api.get(`/api/admin/users/${userId}?period=${period}`);
+      const res = await api.get(`/api/admin/users/${userId}?${buildQuery(period)}`);
       setUserDetails(res.data);
       setShowDetails(true);
     } catch (error) {
@@ -68,7 +96,22 @@ const AdminDashboard: React.FC = () => {
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);
-    fetchUsers(newPeriod);
+    if (newPeriod !== 'custom') {
+      fetchUsers(newPeriod);
+    }
+  };
+
+  const handleApplyCustom = () => {
+    if (!customFrom && !customTo) {
+      setError('Informe pelo menos a data inicial ou final.');
+      return;
+    }
+    if (customFrom && customTo && customFrom > customTo) {
+      setError('A data inicial não pode ser maior que a final.');
+      return;
+    }
+    setPeriod('custom');
+    fetchUsers('custom', customFrom, customTo);
   };
 
   const handleViewDetails = (user: UserMetrics) => {
@@ -84,12 +127,20 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (!user?.isAdmin) return;
+    if (period === 'custom') return;
     fetchUsers(period);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.isAdmin, period]);
+
+  const filteredUsers = users.filter((u) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return `${u.name || ''} ${u.email || ''}`.toLowerCase().includes(q);
+  });
 
   if (!user?.isAdmin) {
     return (
-      <div className="w-100">
+      <div className="page-shell">
         <div className="alert alert-danger" role="alert">
           Acesso negado. Apenas administradores podem acessar esta página.
         </div>
@@ -97,61 +148,106 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && users.length === 0 && !loading) {
     return (
-      <div className="w-100">
+      <div className="page-shell">
         <div className="alert alert-danger" role="alert">
           {error}
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-light ms-3"
+            onClick={() => {
+              setError('');
+              fetchUsers('week');
+              setPeriod('week');
+            }}
+          >
+            Voltar
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-100">
-      {/* Header */}
-      <div className="row mb-5">
-        <div className="col-12">
-          <div className="p-4 rounded-4 bg-white shadow-sm border-0">
-            <p className="text-primary fw-bold text-uppercase small mb-1">Painel Administrativo</p>
-            <h1 className="fw-black text-dark mb-3">Ranking de Saúde dos Usuários 📊</h1>
-            
-            {/* Period Filter */}
-            <div className="btn-group" role="group">
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Saúde do atleta</p>
+          <h1 className="page-title">O que os atletas estão registrando</h1>
+          <p className="page-subtitle">
+            Sono, treinos, nutrição e saúde informados pelos atletas — e notas de treino/jogo do staff.
+          </p>
+          {(period === 'custom' || customFrom || customTo) && (
+            <div className="page-custom-dates">
+              <div>
+                <label className="form-label small mb-1">De</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={customFrom}
+                  onChange={(e) => {
+                    setCustomFrom(e.target.value);
+                    setPeriod('custom');
+                  }}
+                  max={customTo || undefined}
+                />
+              </div>
+              <div>
+                <label className="form-label small mb-1">Até</label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={customTo}
+                  onChange={(e) => {
+                    setCustomTo(e.target.value);
+                    setPeriod('custom');
+                  }}
+                  min={customFrom || undefined}
+                />
+              </div>
               <button
                 type="button"
-                className={`btn ${period === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
-                onClick={() => handlePeriodChange('week')}
+                className="btn btn-sm btn-primary"
+                onClick={handleApplyCustom}
+                disabled={!customFrom && !customTo}
               >
-                Esta Semana
-              </button>
-              <button
-                type="button"
-                className={`btn ${period === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
-                onClick={() => handlePeriodChange('month')}
-              >
-                Este Mês
-              </button>
-              <button
-                type="button"
-                className={`btn ${period === 'year' ? 'btn-primary' : 'btn-outline-primary'}`}
-                onClick={() => handlePeriodChange('year')}
-              >
-                Este Ano
+                Aplicar
               </button>
             </div>
-          </div>
+          )}
+          {period === 'custom' && (customFrom || customTo) && (
+            <small className="text-muted d-block mt-2">
+              Período: {customFrom || '…'} → {customTo || 'hoje'}
+            </small>
+          )}
+          {error && <div className="alert alert-warning py-2 mt-3 mb-0">{error}</div>}
         </div>
-      </div>
+        <div className="page-period" role="group" aria-label="Período">
+          {[
+            { id: 'week', label: 'Semana' },
+            { id: 'month', label: 'Mês' },
+            { id: 'year', label: 'Ano' },
+            { id: 'custom', label: 'Personalizado' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`page-period__btn ${period === p.id ? 'is-active' : ''}`}
+              onClick={() => (p.id === 'custom' ? setPeriod('custom') : handlePeriodChange(p.id))}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </header>
 
       {loading ? (
         <div className="text-center py-5">
-          <div className="mb-3">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Carregando...</span>
-            </div>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
           </div>
-          <p className="text-secondary">Carregando dashboard administrativo...</p>
+          <p className="text-secondary mt-3">Carregando saúde dos atletas...</p>
         </div>
       ) : users.length === 0 ? (
         <div className="alert alert-info">
@@ -160,133 +256,188 @@ const AdminDashboard: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Summary */}
-          <div className="row mb-4">
-            <div className="col-12">
-              <div className="p-3 rounded-3 bg-light border-0">
-                <p className="text-secondary mb-1">Total de Usuários</p>
-                <h3 className="fw-bold text-dark">{users.length} 👥</h3>
+          <div className="row g-3">
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(212,175,55,0.15)', color: 'var(--accent)' }}>
+                  <i className="bi bi-people-fill" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Atletas</div>
+                  <div className="page-stat__value">{users.length}</div>
+                  <div className="page-stat__meta">no período</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(93,173,226,0.15)', color: '#5dade2' }}>
+                  <i className="bi bi-moon-stars-fill" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Média sono</div>
+                  <div className="page-stat__value">
+                    {users.length
+                      ? (
+                          users.reduce((acc, u) => acc + (u.metrics.sleep.averageHours || 0), 0) / users.length
+                        ).toFixed(1)
+                      : '—'}
+                  </div>
+                  <div className="page-stat__meta">horas / noite</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(231,76,60,0.15)', color: 'var(--danger)' }}>
+                  <i className="bi bi-fire" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Treinos</div>
+                  <div className="page-stat__value">
+                    {users.reduce((acc, u) => acc + (u.metrics.workouts.total || 0), 0)}
+                  </div>
+                  <div className="page-stat__meta">sessões somadas</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--success)' }}>
+                  <i className="bi bi-apple" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Score médio</div>
+                  <div className="page-stat__value">
+                    {users.length
+                      ? Math.round(users.reduce((acc, u) => acc + u.overallScore, 0) / users.length)
+                      : '—'}
+                  </div>
+                  <div className="page-stat__meta">geral do elenco</div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Ranking Table */}
-          <div className="row">
-            <div className="col-12">
-              <div className="table-responsive rounded-4 bg-white shadow-sm overflow-hidden">
-                <table className="table table-hover mb-0">
-                  <thead className="table-light">
+          <section className="page-panel">
+            <div className="page-panel__toolbar">
+              <h2 className="page-panel__title">Ranking de saúde</h2>
+              <div className="page-panel__actions">
+                <div className="page-search">
+                  <i className="bi bi-search" />
+                  <input
+                    type="search"
+                    placeholder="Buscar atleta..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Buscar atleta"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 page-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 56 }}>#</th>
+                    <th>Atleta</th>
+                    <th className="text-center">Sono</th>
+                    <th className="text-center">Treinos</th>
+                    <th className="text-center">Nutrição</th>
+                    <th className="text-center">Score</th>
+                    <th className="text-center">Ranking</th>
+                    <th className="text-end">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.length === 0 ? (
                     <tr>
-                      <th scope="col" className="border-0 ps-4">Posição</th>
-                      <th scope="col" className="border-0">Nome</th>
-                      <th scope="col" className="border-0">Email</th>
-                      <th scope="col" className="border-0 text-center">
-                        <span title="Sono">😴 Sono</span>
-                      </th>
-                      <th scope="col" className="border-0 text-center">
-                        <span title="Treinos">🏋️ Treinos</span>
-                      </th>
-                      <th scope="col" className="border-0 text-center">
-                        <span title="Nutrição">🥗 Nutrição</span>
-                      </th>
-                      <th scope="col" className="border-0 text-center">Score Geral</th>
-                      <th scope="col" className="border-0 text-center">Ranking</th>
-                      <th scope="col" className="border-0 text-center">Ações</th>
+                      <td colSpan={8} className="text-center text-muted py-4">
+                        Nenhum atleta encontrado.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user, index) => (
-                      <tr key={user.id} className="align-middle">
-                        <td className="ps-4 fw-bold">{index + 1}º</td>
+                  ) : (
+                    filteredUsers.map((athlete, index) => (
+                      <tr key={athlete.id} className="align-middle">
                         <td>
-                          <div className="d-flex align-items-center">
-                            <div
-                              className="rounded-circle me-3"
-                              style={{
-                                width: '40px',
-                                height: '40px',
-                                backgroundColor: getColorByScore(user.overallScore),
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                              }}
-                            >
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="fw-500">{user.name || 'Sem nome'}</span>
+                          <div className="page-rank">
+                            <span>{index + 1}</span>
+                            {index === 0 && <i className="bi bi-award-fill page-medal page-medal--gold" />}
+                            {index === 1 && <i className="bi bi-award-fill page-medal page-medal--silver" />}
+                            {index === 2 && <i className="bi bi-award-fill page-medal page-medal--bronze" />}
                           </div>
                         </td>
                         <td>
-                          <small className="text-muted">{user.email}</small>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-info-soft text-info">
-                            {user.metrics.sleep.score}
-                          </span>
-                          <br />
-                          <small className="text-muted">{user.metrics.sleep.averageHours}h</small>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-danger-soft text-danger">
-                            {user.metrics.workouts.score}
-                          </span>
-                          <br />
-                          <small className="text-muted">{user.metrics.workouts.total}x</small>
-                        </td>
-                        <td className="text-center">
-                          <span className="badge bg-success-soft text-success">
-                            {user.metrics.nutrition.score}
-                          </span>
-                          <br />
-                          <small className="text-muted">{user.metrics.nutrition.cleanMealPercentage}%</small>
-                        </td>
-                        <td className="text-center">
-                          <div className="d-flex align-items-center justify-content-center">
+                          <div className="page-person">
                             <div
-                              style={{
-                                width: '50px',
-                                height: '50px',
-                                borderRadius: '50%',
-                                backgroundColor: getColorByScore(user.overallScore),
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontSize: '20px',
-                                fontWeight: 'bold',
-                              }}
+                              className="page-avatar"
+                              style={{ background: avatarColor(athlete.email || athlete.name) }}
                             >
-                              {user.overallScore}
+                              {getInitials(athlete.name, athlete.email)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="page-person__name">{athlete.name || 'Sem nome'}</div>
+                              <div className="page-person__meta">{athlete.email}</div>
                             </div>
                           </div>
                         </td>
                         <td className="text-center">
-                          <span className="badge bg-secondary p-2">
-                            {user.rank}
-                          </span>
+                          <span className="page-pill">{athlete.metrics.sleep.score}</span>
+                          <div className="small text-muted mt-1">{athlete.metrics.sleep.averageHours}h</div>
                         </td>
                         <td className="text-center">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => handleViewDetails(user)}
+                          <span className="page-pill">{athlete.metrics.workouts.score}</span>
+                          <div className="small text-muted mt-1">{athlete.metrics.workouts.total}x</div>
+                        </td>
+                        <td className="text-center">
+                          <span className="page-pill">{athlete.metrics.nutrition.score}</span>
+                          <div className="small text-muted mt-1">
+                            {athlete.metrics.nutrition.cleanMealPercentage}%
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          <span
+                            className="page-pill"
+                            style={{
+                              background: `${getColorByScore(athlete.overallScore)}22`,
+                              borderColor: getColorByScore(athlete.overallScore),
+                              color: getColorByScore(athlete.overallScore),
+                            }}
                           >
-                            Ver Detalhes
+                            {athlete.overallScore}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <span className="badge bg-secondary-subtle text-secondary">{athlete.rank}</span>
+                        </td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="page-details-btn"
+                            onClick={() => handleViewDetails(athlete)}
+                          >
+                            Detalhes <i className="bi bi-chevron-right" />
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
+            <div className="page-panel__footer">
+              <span className="text-muted small">
+                Mostrando {filteredUsers.length} de {users.length} atletas
+              </span>
+            </div>
+          </section>
 
-          {/* User Details Modal */}
           {showDetails && userDetails && (
-            <AthleteDetailsModal details={userDetails} onClose={handleCloseDetails} />
+            <AthleteDetailsModal
+              details={userDetails}
+              onClose={handleCloseDetails}
+              onRefresh={() => selectedUser && fetchUserDetails(selectedUser.id)}
+            />
           )}
         </>
       )}
@@ -295,12 +446,12 @@ const AdminDashboard: React.FC = () => {
 };
 
 function getColorByScore(score: number): string {
-  if (score >= 90) return '#28a745'; // Green
-  if (score >= 80) return '#20c997'; // Teal
-  if (score >= 70) return '#17a2b8'; // Cyan
-  if (score >= 60) return '#ffc107'; // Yellow
-  if (score >= 40) return '#fd7e14'; // Orange
-  return '#dc3545'; // Red
+  if (score >= 90) return '#2ecc71';
+  if (score >= 80) return '#1abc9c';
+  if (score >= 70) return '#5dade2';
+  if (score >= 60) return '#d4af37';
+  if (score >= 40) return '#e67e22';
+  return '#e74c3c';
 }
 
 export default AdminDashboard;

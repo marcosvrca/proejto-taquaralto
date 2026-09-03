@@ -209,19 +209,17 @@ const Nutrition: React.FC = () => {
   const totalCalories = meals.reduce((acc, m) => acc + m.calories, 0);
 
   return (
-    <div className="w-100">
-      <div className="row align-items-center mb-5">
-        <div className="col-12">
-          <h1 className="fw-black text-dark mb-1">
-            <i className="bi bi-apple text-success me-2"></i>
-            Nutrição & Dieta
-          </h1>
-          <p className="text-secondary lead fs-6">Gerencie sua ingestão calórica e mantenha o equilíbrio nutricional.</p>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Performance</p>
+          <h1 className="page-title">Nutrição & Dieta</h1>
+          <p className="page-subtitle">Gerencie sua ingestão calórica e mantenha o equilíbrio nutricional.</p>
         </div>
-      </div>
+      </header>
 
       {message && (
-        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-0 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
           <div className="d-flex align-items-center">
             <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
             {message}
@@ -230,27 +228,57 @@ const Nutrition: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="row g-4 mb-5">
-         <div className="col-md-6">
-            <div className="card p-4 border-0 h-100 border-start border-success border-4 shadow-sm">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Consumo Total Registrado</p>
-               <h3 className="fw-black text-dark mb-0">{totalCalories} kcal</h3>
-               <div className="small text-muted mt-2">Energia total consumida</div>
+      <div className="row g-3">
+        <div className="col-md-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--success)' }}>
+              <i className="bi bi-apple" />
             </div>
-         </div>
-         <div className="col-md-6">
-            <div className="card p-4 border-0 h-100 border-start border-primary border-4 shadow-sm">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Refeições Realizadas</p>
-               <h3 className="fw-black text-dark mb-0">{meals.length} refeições</h3>
-               <div className="small text-muted mt-2">Frequência alimentar</div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Consumo total</div>
+              <div className="page-stat__value" style={{ fontSize: '1.35rem' }}>{totalCalories} kcal</div>
+              <div className="page-stat__meta">energia registrada</div>
             </div>
-         </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(212,175,55,0.15)', color: 'var(--accent)' }}>
+              <i className="bi bi-cup-straw" />
+            </div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Refeições</div>
+              <div className="page-stat__value">{meals.length}</div>
+              <div className="page-stat__meta">frequência alimentar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="page-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'diary' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('diary')}
+        >
+          <i className="bi bi-calendar-check" />
+          <span>Diário</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'reports' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          <i className="bi bi-graph-up" />
+          <span>Relatórios</span>
+        </button>
       </div>
 
       <div className="row g-5">
         <div className="col-lg-4">
-          <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
+          <div className="dash-card sticky-top" style={{top: '100px'}}>
             <h2 className="h5 fw-bold text-dark mb-4">
                <i className={`bi ${editingMeal ? 'bi-pencil-square' : 'bi-plus-circle-fill'} text-success me-2`}></i>
                {editingMeal ? 'Editar Refeição' : 'Novo Registro'}
@@ -359,27 +387,6 @@ const Nutrition: React.FC = () => {
         </div>
 
         <div className="col-lg-8">
-          {/* Abas de Navegação */}
-          <ul className="nav nav-tabs mb-4 border-0 gap-2">
-            <li className="nav-item">
-              <button
-                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'diary' ? 'bg-success text-white' : 'bg-light text-secondary'}`}
-                onClick={() => setActiveTab('diary')}
-              >
-                <i className="bi bi-calendar-check me-2"></i>Diário Alimentar
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'reports' ? 'bg-success text-white' : 'bg-light text-secondary'}`}
-                onClick={() => setActiveTab('reports')}
-              >
-                <i className="bi bi-graph-up me-2"></i>Relatórios
-              </button>
-            </li>
-          </ul>
-
-          {/* Aba Diário Alimentar */}
           {activeTab === 'diary' && (
           <div>
             <div className="d-flex align-items-center justify-content-between mb-4">

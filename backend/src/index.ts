@@ -13,6 +13,8 @@ const NutritionController = require('./controllers/NutritionController');
 const PainController = require('./controllers/PainController');
 const GoalController = require('./controllers/GoalController');
 const { AdminController, UserManagementController } = require('./controllers/AdminController');
+const GamesController = require('./controllers/GamesController');
+const AthletePerformanceController = require('./controllers/AthletePerformanceController');
 const bcrypt = require('bcryptjs');
 
 function createApp() {
@@ -85,10 +87,35 @@ function createApp() {
   app.get('/api/admin/users/list/all', auth, adminAuth, UserManagementController.getAllUsers);
   app.get('/api/admin/users', auth, adminAuth, AdminController.getAllUsersWithMetrics);
   app.get('/api/admin/users/:userId', auth, adminAuth, AdminController.getUserDetailedMetrics);
+  app.post('/api/admin/users/:userId/notes', auth, adminAuth, AdminController.createAthleteNote);
+  app.put('/api/admin/users/:userId/notes/:noteId', auth, adminAuth, AdminController.updateAthleteNote);
+  app.delete('/api/admin/users/:userId/notes/:noteId', auth, adminAuth, AdminController.deleteAthleteNote);
   app.post('/api/admin/users', auth, adminAuth, UserManagementController.createUser);
   app.put('/api/admin/users/:id/permissions', auth, adminAuth, UserManagementController.updateUserPermissions);
   app.put('/api/admin/users/:id', auth, adminAuth, UserManagementController.updateUser);
   app.delete('/api/admin/users/:id', auth, adminAuth, UserManagementController.deleteUser);
+
+  // Calendário (atletas — somente leitura)
+  app.get('/api/calendar/matches', auth, GamesController.listPublicCalendar);
+
+  // Admin games / calendar
+  app.get('/api/admin/tournaments', auth, adminAuth, GamesController.listTournaments);
+  app.post('/api/admin/tournaments', auth, adminAuth, GamesController.createTournament);
+  app.put('/api/admin/tournaments/:id', auth, adminAuth, GamesController.updateTournament);
+  app.delete('/api/admin/tournaments/:id', auth, adminAuth, GamesController.deleteTournament);
+  app.get('/api/admin/matches', auth, adminAuth, GamesController.listMatches);
+  app.post('/api/admin/matches', auth, adminAuth, GamesController.createMatch);
+  app.get('/api/admin/matches/metrics', auth, adminAuth, GamesController.getMetrics);
+  app.get('/api/admin/athlete-performance', auth, adminAuth, AthletePerformanceController.getOverview);
+  app.get('/api/admin/athlete-performance/:userId', auth, adminAuth, AthletePerformanceController.getAthleteDetail);
+  app.get('/api/admin/matches/:id', auth, adminAuth, GamesController.getMatchDetails);
+  app.put('/api/admin/matches/:id', auth, adminAuth, GamesController.updateMatch);
+  app.delete('/api/admin/matches/:id', auth, adminAuth, GamesController.deleteMatch);
+  app.post('/api/admin/matches/:id/players', auth, adminAuth, GamesController.addMatchPlayers);
+  app.put('/api/admin/matches/:id/players/:playerId', auth, adminAuth, GamesController.updateMatchPlayer);
+  app.delete('/api/admin/matches/:id/players/:playerId', auth, adminAuth, GamesController.removeMatchPlayer);
+  app.post('/api/admin/matches/:id/goals', auth, adminAuth, GamesController.addMatchGoal);
+  app.delete('/api/admin/matches/:id/goals/:goalId', auth, adminAuth, GamesController.removeMatchGoal);
 
   app.get('/', (req, res) => {
     res.send('Hello World!');

@@ -95,32 +95,33 @@ const Sleep: React.FC = () => {
   };
 
   return (
-    <div className="w-100">
-      <div className="row align-items-center mb-5">
-        <div className="col-lg-6">
-          <h1 className="fw-black text-dark mb-1">
-            <i className="bi bi-moon-stars text-primary me-2"></i>
-            Sono & Recuperação
-          </h1>
-          <p className="text-secondary lead fs-6">Acompanhe seu descanso para otimizar sua performance.</p>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Performance</p>
+          <h1 className="page-title">Sono & Recuperação</h1>
+          <p className="page-subtitle">Acompanhe seu descanso para otimizar sua performance.</p>
         </div>
-        <div className="col-lg-6 d-flex justify-content-lg-end">
-          <div className="btn-group bg-white p-1 rounded-3 shadow-sm" role="group">
-             {['week', 'month', 'year'].map((p) => (
-                <button
-                   key={p}
-                   onClick={() => setPeriod(p)}
-                   className={`btn btn-sm px-3 rounded-2 fw-bold border-0 ${period === p ? 'btn-primary shadow-sm' : 'btn-light text-secondary'}`}
-                >
-                   {p === 'week' ? 'Semana' : p === 'month' ? 'Mês' : 'Ano'}
-                </button>
-             ))}
-          </div>
+        <div className="page-period" role="group" aria-label="Período">
+          {[
+            { id: 'week', label: 'Semana' },
+            { id: 'month', label: 'Mês' },
+            { id: 'year', label: 'Ano' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPeriod(p.id)}
+              className={`page-period__btn ${period === p.id ? 'is-active' : ''}`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </header>
 
       {message && (
-        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-0 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
           <div className="d-flex align-items-center">
             <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
             {message}
@@ -129,61 +130,82 @@ const Sleep: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="row g-4 mb-5">
-         <div className="col-md-3">
-            <div className="card p-4 border-0 h-100">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Media Diaria</p>
-               <h3 className="fw-black text-primary mb-0">{formatDuration(Math.round(dailyAverage))}</h3>
-               <div className="small text-muted mt-2">No periodo selecionado</div>
+      <div className="row g-3">
+        <div className="col-md-3 col-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(212,175,55,0.15)', color: 'var(--accent)' }}>
+              <i className="bi bi-moon-stars-fill" />
             </div>
-         </div>
-         <div className="col-md-3">
-            <div className="card p-4 border-0 h-100">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Total Semanal</p>
-               <h3 className="fw-black text-dark mb-0">{formatDuration(Math.round(weeklyAverage))}</h3>
-               <div className="small text-muted mt-2">Total de horas dormidas</div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Média diária</div>
+              <div className="page-stat__value" style={{ fontSize: '1.25rem' }}>{formatDuration(Math.round(dailyAverage))}</div>
+              <div className="page-stat__meta">no período</div>
             </div>
-         </div>
-         <div className="col-md-3">
-            <div className="card p-4 border-0 h-100">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Melhor Noite</p>
-               <h3 className="fw-black text-success mb-0">{bestDay ? formatDuration(bestDay.durationMinutes) : '--'}</h3>
-               <div className="small text-muted mt-2">{bestDay?.date || 'Nenhum registro'}</div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(93,173,226,0.15)', color: '#5dade2' }}>
+              <i className="bi bi-clock-history" />
             </div>
-         </div>
-         <div className="col-md-3">
-            <div className="card p-4 border-0 h-100">
-               <p className="text-uppercase small fw-bold text-secondary mb-1">Menor Descanso</p>
-               <h3 className="fw-black text-danger mb-0">{worstDay ? formatDuration(worstDay.durationMinutes) : '--'}</h3>
-               <div className="small text-muted mt-2">{worstDay?.date || 'Nenhum registro'}</div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Total semanal</div>
+              <div className="page-stat__value" style={{ fontSize: '1.25rem' }}>{formatDuration(Math.round(weeklyAverage))}</div>
+              <div className="page-stat__meta">horas dormidas</div>
             </div>
-         </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--success)' }}>
+              <i className="bi bi-emoji-smile" />
+            </div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Melhor noite</div>
+              <div className="page-stat__value" style={{ fontSize: '1.25rem' }}>{bestDay ? formatDuration(bestDay.durationMinutes) : '—'}</div>
+              <div className="page-stat__meta">{bestDay?.date || 'Sem dados'}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6">
+          <div className="page-stat">
+            <div className="page-stat__icon" style={{ background: 'rgba(231,76,60,0.15)', color: 'var(--danger)' }}>
+              <i className="bi bi-exclamation-triangle" />
+            </div>
+            <div className="page-stat__body">
+              <div className="page-stat__label">Menor descanso</div>
+              <div className="page-stat__value" style={{ fontSize: '1.25rem' }}>{worstDay ? formatDuration(worstDay.durationMinutes) : '—'}</div>
+              <div className="page-stat__meta">{worstDay?.date || 'Sem dados'}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <ul className="nav nav-tabs mb-4 border-0 gap-2">
-            <li className="nav-item">
-              <button
-                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'diary' ? 'bg-primary text-white' : 'bg-light text-secondary'}`}
-                onClick={() => setActiveTab('diary')}
-              >
-                <i className="bi bi-calendar-check me-2"></i>Diario de Sono
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link rounded-top-3 fw-bold px-4 py-2 border-0 ${activeTab === 'reports' ? 'bg-primary text-white' : 'bg-light text-secondary'}`}
-                onClick={() => setActiveTab('reports')}
-              >
-                <i className="bi bi-graph-up me-2"></i>Relatorios
-              </button>
-            </li>
-          </ul>
+      <div className="page-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'diary' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('diary')}
+        >
+          <i className="bi bi-calendar-check" />
+          <span>Diário de Sono</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'reports' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          <i className="bi bi-graph-up" />
+          <span>Relatórios</span>
+        </button>
+      </div>
 
       {activeTab === 'diary' && (
       <div className="row g-5">
         <div className="col-lg-4">
-          <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
+          <div className="dash-card sticky-top" style={{top: '100px'}}>
             <h2 className="h5 fw-bold text-dark mb-4 d-flex align-items-center">
                <i className={`bi ${editingRecord ? 'bi-pencil-square' : 'bi-plus-circle-fill'} text-primary me-2`}></i>
                {editingRecord ? 'Editar Registro' : 'Novo Registro'}

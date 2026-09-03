@@ -37,7 +37,9 @@ const Header: React.FC = () => {
                   <li><Link className="dropdown-item rounded-2" to="/dashboard"><i className="bi bi-grid me-2"></i>Dashboard</Link></li>
                   {user.isAdmin && <>
                     <li><hr className="dropdown-divider" /></li>
-                    <li><Link className="dropdown-item rounded-2 text-primary fw-bold" to="/admin"><i className="bi bi-shield-lock me-2"></i>Painel Admin</Link></li>
+                    <li><Link className="dropdown-item rounded-2 text-primary fw-bold" to="/admin"><i className="bi bi-heart-pulse-fill me-2"></i>Saúde do atleta</Link></li>
+                    <li><Link className="dropdown-item rounded-2 text-primary" to="/admin/athlete-performance"><i className="bi bi-clipboard-data me-2"></i>Métricas de jogos</Link></li>
+                    <li><Link className="dropdown-item rounded-2 text-primary" to="/admin/games"><i className="bi bi-trophy me-2"></i>Jogos & Calendário</Link></li>
                     <li><Link className="dropdown-item rounded-2 text-primary" to="/admin/users"><i className="bi bi-people me-2"></i>Gerenciar Atletas</Link></li>
                   </>}
                   <li><hr className="dropdown-divider" /></li>

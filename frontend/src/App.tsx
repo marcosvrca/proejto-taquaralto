@@ -13,6 +13,9 @@ import Pains from './pages/Pains';
 import Goals from './pages/Goals';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './pages/UserManagement';
+import AdminGames from './pages/AdminGames';
+import AdminAthletePerformance from './pages/AdminAthletePerformance';
+import AthleteCalendar from './pages/AthleteCalendar';
 
 const AppRoutes: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -44,11 +47,14 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin-dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
+        <Route path="/admin/games" element={<ProtectedRoute adminOnly><AdminGames /></ProtectedRoute>} />
+        <Route path="/admin/athlete-performance" element={<ProtectedRoute adminOnly><AdminAthletePerformance /></ProtectedRoute>} />
         <Route path="/sleep" element={<ProtectedRoute requiredPermission="sleep"><Sleep /></ProtectedRoute>} />
         <Route path="/workouts" element={<ProtectedRoute requiredPermission="workouts"><Workouts /></ProtectedRoute>} />
         <Route path="/nutrition" element={<ProtectedRoute requiredPermission="nutrition"><Nutrition /></ProtectedRoute>} />
         <Route path="/pains" element={<ProtectedRoute requiredPermission="health"><Pains /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute requiredPermission="goals"><Goals /></ProtectedRoute>} />
+        <Route path="/calendar" element={<AthleteCalendar />} />
       </Route>
 
       <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />

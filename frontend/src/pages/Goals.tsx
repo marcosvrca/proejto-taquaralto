@@ -112,57 +112,31 @@ const Goals: React.FC = () => {
   const progressPercent = goals.length > 0 ? Math.round((completedCount / goals.length) * 100) : 0;
 
   return (
-    <div className="w-100">
-      <div className="row align-items-center mb-5">
-        <div className="col-lg-8">
-          <h1 className="fw-black text-dark mb-1">
-            <i className="bi bi-trophy text-info me-2"></i>
-            Metas & Objetivos
-          </h1>
-          <p className="text-secondary lead fs-6">Defina onde quer chegar e acompanhe sua evolução para bater seus recordes.</p>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Performance</p>
+          <h1 className="page-title">Metas & Objetivos</h1>
+          <p className="page-subtitle">Defina onde quer chegar e acompanhe sua evolução para bater seus recordes.</p>
         </div>
-        <div className="col-lg-4 text-lg-end">
-           <div className="bg-white p-3 rounded-4 shadow-sm d-inline-block border-0">
-              <div className="d-flex align-items-center gap-3">
-                 <div className="text-start">
-                    <p className="text-uppercase small fw-bold text-secondary mb-0">Progresso Geral</p>
-                    <p className="h4 fw-black mb-0 text-info">{progressPercent}%</p>
-                 </div>
-                 {initialLoading ? (
-                   <div className="spinner-border text-info" role="status" style={{width: '40px', height: '40px'}}>
-                      <span className="visually-hidden">Loading...</span>
-                   </div>
-                 ) : (
-                   <div className="progress-circle" style={{
-                     width: '40px',
-                     height: '40px',
-                     borderRadius: '50%',
-                     background: `conic-gradient(#0dcaf0 ${progressPercent}%, #e9ecef ${progressPercent}%)`,
-                     display: 'flex',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     position: 'relative'
-                   }}>
-                     <div style={{
-                       width: '32px',
-                       height: '32px',
-                       borderRadius: '50%',
-                       background: 'white',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'center'
-                     }}>
-                       <span className="fw-bold small text-info" style={{fontSize: '10px'}}>{progressPercent}%</span>
-                     </div>
-                   </div>
-                 )}
-              </div>
-           </div>
+        <div className="page-stat" style={{ minWidth: 200, minHeight: 72 }}>
+          <div className="page-stat__icon" style={{ background: 'rgba(212,175,55,0.15)', color: 'var(--accent)' }}>
+            <i className="bi bi-bullseye" />
+          </div>
+          <div className="page-stat__body">
+            <div className="page-stat__label">Progresso geral</div>
+            <div className="page-stat__value" style={{ fontSize: '1.35rem' }}>
+              {initialLoading ? '…' : `${progressPercent}%`}
+            </div>
+            <div className="page-stat__meta">
+              {completedCount}/{goals.length} concluídas
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
       {message && (
-        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
+        <div className={`alert alert-dismissible fade show rounded-4 shadow-sm border-0 mb-0 ${message.includes('✅') ? 'alert-success' : 'alert-danger'}`}>
           <div className="d-flex align-items-center">
             <i className={`bi ${message.includes('✅') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2`}></i>
             {message}
@@ -171,9 +145,30 @@ const Goals: React.FC = () => {
         </div>
       )}
 
+      <div className="page-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'diary' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('diary')}
+        >
+          <i className="bi bi-calendar-check" />
+          <span>Minhas Metas</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`page-tab ${activeTab === 'reports' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          <i className="bi bi-bar-chart" />
+          <span>Relatórios</span>
+        </button>
+      </div>
+
       <div className="row g-5">
         <div className="col-lg-4">
-          <div className="card p-4 border-0 shadow-sm sticky-top" style={{top: '100px'}}>
+          <div className="dash-card sticky-top" style={{top: '100px'}}>
             <h2 className="h5 fw-bold text-dark mb-4">
                <i className={`bi ${editingGoal ? 'bi-pencil-square' : 'bi-plus-circle-fill'} text-info me-2`}></i>
                {editingGoal ? 'Editar Meta' : 'Nova Meta'}
@@ -202,21 +197,6 @@ const Goals: React.FC = () => {
         </div>
 
         <div className="col-lg-8">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <button
-              onClick={() => setActiveTab('diary')}
-              className={`btn fw-bold ${activeTab === 'diary' ? 'btn-dark text-white' : 'btn-outline-secondary'}`}
-            >
-              <i className="bi bi-calendar-check me-2"></i>Minhas Metas
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`btn fw-bold ${activeTab === 'reports' ? 'btn-dark text-white' : 'btn-outline-secondary'}`}
-            >
-              <i className="bi bi-bar-chart me-2"></i>Relatorios
-            </button>
-          </div>
-
           {activeTab === 'diary' && (
           <>
           <div className="d-flex align-items-center justify-content-between mb-4">

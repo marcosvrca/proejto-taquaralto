@@ -43,7 +43,7 @@ const SECTIONS: NavSection[] = [
   {
     label: 'SISTEMA',
     items: [
-      { label: 'Calendário', icon: 'bi-calendar3', soon: true },
+      { label: 'Calendário', icon: 'bi-calendar3', to: '/calendar' },
       { label: 'Mensagens', icon: 'bi-chat-dots', soon: true },
       { label: 'Configurações', icon: 'bi-gear', soon: true },
     ],
@@ -51,7 +51,9 @@ const SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
-      { label: 'Painel Admin', icon: 'bi-shield-lock', to: '/admin', adminOnly: true },
+      { label: 'Saúde do atleta', icon: 'bi-heart-pulse-fill', to: '/admin', adminOnly: true },
+      { label: 'Métricas de jogos', icon: 'bi-clipboard-data', to: '/admin/athlete-performance', adminOnly: true },
+      { label: 'Jogos & Calendário', icon: 'bi-trophy', to: '/admin/games', adminOnly: true },
       { label: 'Gerenciar Atletas', icon: 'bi-people', to: '/admin/users', adminOnly: true },
     ],
   },

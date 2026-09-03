@@ -163,98 +163,111 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-100 text-center">
+      <div className="page-shell text-center py-5">
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Carregando...</span>
         </div>
-        <p className="mt-3">Carregando dashboard...</p>
+        <p className="mt-3 text-muted">Carregando dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-100">
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="mb-0">📊 Dashboard Completo</h1>
-              <p className="text-muted mt-1">Visão geral de todos os seus dados de saúde</p>
-            </div>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="form-select"
-              style={{ width: 'auto' }}
-            >
-              <option value="week">Semanal</option>
-              <option value="month">Mensal</option>
-              <option value="year">Anual</option>
-            </select>
-          </div>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="page-header__copy">
+          <p className="page-eyebrow">Performance</p>
+          <h1 className="page-title">Dashboard Completo</h1>
+          <p className="page-subtitle">Visão geral de todos os seus dados de saúde</p>
         </div>
-      </div>
+        <div className="page-period" role="group" aria-label="Período">
+          {[
+            { id: 'week', label: 'Semana' },
+            { id: 'month', label: 'Mês' },
+            { id: 'year', label: 'Ano' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`page-period__btn ${period === p.id ? 'is-active' : ''}`}
+              onClick={() => setPeriod(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </header>
 
       {message && (
-        <div className="alert alert-info alert-dismissible fade show" role="alert">
+        <div className="alert alert-info alert-dismissible fade show mb-0" role="alert">
           {message}
           <button type="button" className="btn-close" onClick={() => setMessage('')}></button>
         </div>
       )}
 
-      {/* Ranking Geral */}
       {dashboardData && (
-        <div className="row mb-4">
-          <div className="col-12">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-4">
-                <h3 className="h2 mb-3">{dashboardData.ranking.rank}</h3>
-                <div className="row">
-                  <div className="col-md-3">
-                    <div className="p-3">
-                      <div className="h4 mb-1">{dashboardData.ranking.overallScore}%</div>
-                      <small className="text-muted">Score Geral</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="p-3">
-                      <div className="h4 mb-1 text-primary">{dashboardData.ranking.sleepScore}%</div>
-                      <small className="text-muted">Sono</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="p-3">
-                      <div className="h4 mb-1 text-danger">{dashboardData.ranking.workoutScore}%</div>
-                      <small className="text-muted">Treinos</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="p-3">
-                      <div className="h4 mb-1 text-success">{dashboardData.ranking.nutritionScore}%</div>
-                      <small className="text-muted">Nutrição</small>
-                    </div>
-                  </div>
+        <>
+          <div className="row g-3">
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(212,175,55,0.15)', color: 'var(--accent)' }}>
+                  <i className="bi bi-trophy-fill" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Score geral</div>
+                  <div className="page-stat__value">{dashboardData.ranking.overallScore}%</div>
+                  <div className="page-stat__meta">{dashboardData.ranking.rank}</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(93,173,226,0.15)', color: '#5dade2' }}>
+                  <i className="bi bi-moon-stars-fill" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Sono</div>
+                  <div className="page-stat__value">{dashboardData.ranking.sleepScore}%</div>
+                  <div className="page-stat__meta">qualidade no período</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(231,76,60,0.15)', color: 'var(--danger)' }}>
+                  <i className="bi bi-fire" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Treinos</div>
+                  <div className="page-stat__value">{dashboardData.ranking.workoutScore}%</div>
+                  <div className="page-stat__meta">atividade no período</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 col-xl-3">
+              <div className="page-stat">
+                <div className="page-stat__icon" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--success)' }}>
+                  <i className="bi bi-apple" />
+                </div>
+                <div className="page-stat__body">
+                  <div className="page-stat__label">Nutrição</div>
+                  <div className="page-stat__value">{dashboardData.ranking.nutritionScore}%</div>
+                  <div className="page-stat__meta">consistência alimentar</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Relatórios por Módulo */}
-      <div className="row">
-        {/* Sono */}
-        <div className="col-lg-4 mb-4">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-header bg-primary-subtle border-0">
-              <h5 className="card-title mb-0 d-flex align-items-center">
-                <i className="bi bi-moon-stars me-2 text-primary"></i>
-                Relatório de Sono
-              </h5>
-            </div>
-            <div className="card-body">
-              {dashboardData?.sleep && (
-                <div className="space-y-3">
+          <div className="row g-4">
+            <div className="col-lg-4">
+              <section className="page-panel h-100">
+                <div className="page-panel__toolbar">
+                  <h2 className="page-panel__title">
+                    <i className="bi bi-moon-stars me-2" style={{ color: 'var(--accent)' }} />
+                    Sono
+                  </h2>
+                </div>
+                <div className="page-panel__body">
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted small">Total de Horas</span>
                     <span className="fw-bold">{dashboardData.sleep.totalSleepHours}h</span>
@@ -276,23 +289,18 @@ const Dashboard: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              )}
+              </section>
             </div>
-          </div>
-        </div>
 
-        {/* Treinos */}
-        <div className="col-lg-4 mb-4">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-header bg-danger-subtle border-0">
-              <h5 className="card-title mb-0 d-flex align-items-center">
-                <i className="bi bi-fire me-2 text-danger"></i>
-                Relatório de Treinos
-              </h5>
-            </div>
-            <div className="card-body">
-              {dashboardData?.workouts && (
-                <div className="space-y-3">
+            <div className="col-lg-4">
+              <section className="page-panel h-100">
+                <div className="page-panel__toolbar">
+                  <h2 className="page-panel__title">
+                    <i className="bi bi-fire me-2 text-danger" />
+                    Treinos
+                  </h2>
+                </div>
+                <div className="page-panel__body">
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted small">Total de Treinos</span>
                     <span className="fw-bold">{dashboardData.workouts.totalWorkouts}</span>
@@ -308,28 +316,23 @@ const Dashboard: React.FC = () => {
                   <div className="d-flex justify-content-between align-items-center py-2">
                     <span className="text-muted small">Período Mais Ativo</span>
                     <span className="fw-bold small">
-                      {dashboardData.workouts.mostActivePeriod === 'manha' ? '🌅 Manhã' :
-                       dashboardData.workouts.mostActivePeriod === 'tarde' ? '☀️ Tarde' : '🌙 Noite'}
+                      {dashboardData.workouts.mostActivePeriod === 'manha' ? 'Manhã' :
+                       dashboardData.workouts.mostActivePeriod === 'tarde' ? 'Tarde' : 'Noite'}
                     </span>
                   </div>
                 </div>
-              )}
+              </section>
             </div>
-          </div>
-        </div>
 
-        {/* Nutrição */}
-        <div className="col-lg-4 mb-4">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-header bg-success-subtle border-0">
-              <h5 className="card-title mb-0 d-flex align-items-center">
-                <i className="bi bi-apple me-2 text-success"></i>
-                Relatório de Nutrição
-              </h5>
-            </div>
-            <div className="card-body">
-              {dashboardData?.nutrition && (
-                <div className="space-y-3">
+            <div className="col-lg-4">
+              <section className="page-panel h-100">
+                <div className="page-panel__toolbar">
+                  <h2 className="page-panel__title">
+                    <i className="bi bi-apple me-2 text-success" />
+                    Nutrição
+                  </h2>
+                </div>
+                <div className="page-panel__body">
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted small">Total de Refeições</span>
                     <span className="fw-bold">{dashboardData.nutrition.totalMeals}</span>
@@ -341,7 +344,9 @@ const Dashboard: React.FC = () => {
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted small">Dia com Mais Refeições</span>
                     <span className="fw-bold small">
-                      {dashboardData.nutrition.dayWithMostMeals ? new Date(dashboardData.nutrition.dayWithMostMeals).toLocaleDateString('pt-BR') : 'N/A'}
+                      {dashboardData.nutrition.dayWithMostMeals
+                        ? new Date(dashboardData.nutrition.dayWithMostMeals).toLocaleDateString('pt-BR')
+                        : 'N/A'}
                     </span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2">
@@ -349,105 +354,59 @@ const Dashboard: React.FC = () => {
                     <span className="fw-bold small">{dashboardData.nutrition.dayWithMostCalories} cal</span>
                   </div>
                 </div>
-              )}
+              </section>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Gráfico de Progresso */}
-      {dashboardData && (
-        <div className="row mt-4">
-          <div className="col-12">
-            <div className="card border-0 shadow-sm">
-              <div className="card-header border-0">
-                <h5 className="card-title mb-0">📈 Progresso por Categoria</h5>
-              </div>
-              <div className="card-body">
-                <div className="row">
-                  <div className="col-md-4 mb-3">
+          <section className="page-panel">
+            <div className="page-panel__toolbar">
+              <h2 className="page-panel__title">Progresso por categoria</h2>
+            </div>
+            <div className="page-panel__body">
+              <div className="row g-3">
+                {[
+                  { label: 'Sono', score: dashboardData.ranking.sleepScore, color: '#5dade2' },
+                  { label: 'Treinos', score: dashboardData.ranking.workoutScore, color: '#e74c3c' },
+                  { label: 'Nutrição', score: dashboardData.ranking.nutritionScore, color: '#2ecc71' },
+                ].map((item) => (
+                  <div className="col-md-4" key={item.label}>
                     <div className="text-center">
-                      <div className="position-relative d-inline-block mb-2">
-                        <div className="progress-circle" style={{
-                          width: '80px',
-                          height: '80px',
+                      <div
+                        className="mx-auto mb-2"
+                        style={{
+                          width: 80,
+                          height: 80,
                           borderRadius: '50%',
-                          background: `conic-gradient(#007bff 0% ${dashboardData.ranking.sleepScore}%, #e9ecef ${dashboardData.ranking.sleepScore}% 100%)`,
+                          background: `conic-gradient(${item.color} 0% ${item.score}%, var(--surface-2) ${item.score}% 100%)`,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <div style={{
-                            width: '60px',
-                            height: '60px',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 60,
+                            height: 60,
                             borderRadius: '50%',
-                            background: 'white'
-                          }}></div>
-                        </div>
-                        <div className="position-absolute top-50 start-50 translate-middle">
-                          <span className="fw-bold text-primary">{dashboardData.ranking.sleepScore}%</span>
+                            background: 'var(--surface)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            color: item.color,
+                          }}
+                        >
+                          {item.score}%
                         </div>
                       </div>
-                      <h6>Sono</h6>
+                      <h6 className="mb-0">{item.label}</h6>
                     </div>
                   </div>
-                  <div className="col-md-4 mb-3">
-                    <div className="text-center">
-                      <div className="position-relative d-inline-block mb-2">
-                        <div className="progress-circle" style={{
-                          width: '80px',
-                          height: '80px',
-                          borderRadius: '50%',
-                          background: `conic-gradient(#dc3545 0% ${dashboardData.ranking.workoutScore}%, #e9ecef ${dashboardData.ranking.workoutScore}% 100%)`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <div style={{
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '50%',
-                            background: 'white'
-                          }}></div>
-                        </div>
-                        <div className="position-absolute top-50 start-50 translate-middle">
-                          <span className="fw-bold text-danger">{dashboardData.ranking.workoutScore}%</span>
-                        </div>
-                      </div>
-                      <h6>Treinos</h6>
-                    </div>
-                  </div>
-                  <div className="col-md-4 mb-3">
-                    <div className="text-center">
-                      <div className="position-relative d-inline-block mb-2">
-                        <div className="progress-circle" style={{
-                          width: '80px',
-                          height: '80px',
-                          borderRadius: '50%',
-                          background: `conic-gradient(#198754 0% ${dashboardData.ranking.nutritionScore}%, #e9ecef ${dashboardData.ranking.nutritionScore}% 100%)`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <div style={{
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '50%',
-                            background: 'white'
-                          }}></div>
-                        </div>
-                        <div className="position-absolute top-50 start-50 translate-middle">
-                          <span className="fw-bold text-success">{dashboardData.ranking.nutritionScore}%</span>
-                        </div>
-                      </div>
-                      <h6>Nutrição</h6>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </>
       )}
     </div>
   );

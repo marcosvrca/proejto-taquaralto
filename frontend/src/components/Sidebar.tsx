@@ -86,15 +86,25 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
 
   return (
     <aside className={`sidebar${open ? ' sidebar--open' : ''}`} aria-label="Navegação principal">
-      <NavLink to="/" className="sidebar__brand" onClick={onClose}>
-        <div className="sidebar__logo">
-          <i className="bi bi-shield-fill" />
-        </div>
-        <div className="sidebar__brand-text">
-          <span className="sidebar__brand-title">TAQUARALTO</span>
-          <span className="sidebar__brand-sub">Futsal</span>
-        </div>
-      </NavLink>
+      <div className="sidebar__header">
+        <NavLink to="/" className="sidebar__brand" onClick={onClose}>
+          <div className="sidebar__logo">
+            <i className="bi bi-shield-fill" />
+          </div>
+          <div className="sidebar__brand-text">
+            <span className="sidebar__brand-title">TAQUARALTO</span>
+            <span className="sidebar__brand-sub">Futsal</span>
+          </div>
+        </NavLink>
+        <button
+          type="button"
+          className="sidebar__close-btn"
+          onClick={onClose}
+          aria-label="Fechar menu"
+        >
+          <i className="bi bi-x-lg" />
+        </button>
+      </div>
 
       <nav>
         {visibleSections.map((section) => (

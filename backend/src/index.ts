@@ -20,6 +20,7 @@ const bcrypt = require('bcryptjs');
 function normalizeOrigin(origin) {
   return String(origin || '')
     .trim()
+    .replace(/^['"]|['"]$/g, '')
     .replace(/\/+$/, '');
 }
 
